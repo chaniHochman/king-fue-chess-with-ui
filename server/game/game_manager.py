@@ -4,13 +4,13 @@
 # הוספת שחקנים.
 # ניהול כמה משחקים במקביל.
 
-from game.server_game import ServerGame
+from server.game.server_game import ServerGame
 
-from bus.event import Event
+from server.bus.event import Event
 
-from bus.event_type import EventType
+from server.bus.event_type import EventType
 
-from game.game_session import GameSession
+from server.game.game_session import GameSession
 
 class GameManager:
     """
@@ -26,6 +26,18 @@ class GameManager:
         self.bus = bus
 
         self.games = {}
+
+        self.register_events()
+
+    def register_events(self):
+        """
+        Subscribe to move requests from the message bus.
+        """
+
+        self.bus.subscribe(
+            EventType.MOVE_REQUESTED,
+            self.handle_move_event
+        )
 
     # Create game from ready room.
     def create_game(
@@ -58,13 +70,15 @@ class GameManager:
 
                 {
                     "room_id":
-                    room.room_id
+                    room.room_id,
+                    "white": room.white_player,
+                    "black": room.black_player,
                 }
 
             )
 
         )
-        return game
+        return game_session
 
     # Find game by room id.
     def get_game(
@@ -75,6 +89,23 @@ class GameManager:
         return self.games.get(
             room_id
         )
+
+    def handle_move_event(self, event):
+        """
+        Route a move request from the message bus to the correct game session.
+        """
+
+        session = event.data.get("session")
+        move = event.data.get("move")
+
+        if session is None or move is None:
+            return None
+
+        room_id = None
+        if getattr(session, "room", None) is not None:
+            room_id = session.room.room_id
+
+        return self.handle_move(room_id, move)
 
     # Handle player move.
     def handle_move(
@@ -104,8 +135,8 @@ class GameManager:
                     EventType.MOVE_ACCEPTED,
 
                     {
-                        "move":
-                        move
+                        "room_id": room_id,
+                        "move": move
                     }
 
                 )
@@ -121,8 +152,8 @@ class GameManager:
                     EventType.MOVE_REJECTED,
 
                     {
-                        "move":
-                        move
+                        "room_id": room_id,
+                        "move": move
                     }
                 )
             )

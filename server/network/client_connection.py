@@ -1,5 +1,5 @@
 # מחלקה זו אחראית אך ורק על התקשורת עם לקוח אחד.
-from common.message import Message
+from server.messages import Message
 
 
 class ClientConnection:

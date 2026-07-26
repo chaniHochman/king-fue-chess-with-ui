@@ -9,9 +9,9 @@
 
 import hashlib
 
-from authentication.user import User
-from bus.event import Event
-from bus.event_type import EventType
+from server.authentication.user import User
+from server.bus.event import Event
+from server.bus.event_type import EventType
 
 
 class AuthService:

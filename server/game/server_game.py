@@ -34,12 +34,16 @@ class ServerGame:
         move
     ):
 
+        if isinstance(move, (tuple, list)) and len(move) == 2:
+            source, target = move
+            result = self.game_engine.request_move(source, target)
+            return result
+
         result = (
             self.game_engine.request_move(
                 move
             )
         )
-
 
         return result
 

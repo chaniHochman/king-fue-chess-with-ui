@@ -1,6 +1,6 @@
 #אחראית רק על משחק אחד
-from bus.event import Event
-from bus.event_type import EventType
+from server.bus.event import Event
+from server.bus.event_type import EventType
 
 
 
@@ -45,8 +45,8 @@ class GameSession:
     # Handle player move.
     def make_move(
         self,
-        player,
-        move
+        move,
+        player=None
     ):
         """
         Forward move to game engine.

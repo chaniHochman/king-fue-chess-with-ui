@@ -13,7 +13,7 @@ from server.bus.event import Event
 
 from server.bus.event_type import EventType
 
-from common.message_type import MessageType
+from server.common.message_type import MessageType
 
 
 

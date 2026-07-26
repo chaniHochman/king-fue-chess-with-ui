@@ -3,7 +3,7 @@
 # קביעת תפקיד.
 # בדיקה האם החדר מלא.
 import uuid
-from common.player import PlayerRole
+from server.common.player import PlayerRole
 
 class Room:
     """

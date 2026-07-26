@@ -1,6 +1,3 @@
-from logic.game_engine import GameEngine
-
-
 class GameSession:
     """
     Represents one running game.

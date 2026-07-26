@@ -8,11 +8,11 @@
 # פרסום אירועים דרך MessageBus.
 
 
-from room.room import Room
+from server.rooms.room import Room
 
-from bus.event import Event
+from server.bus.event import Event
 
-from bus.event_type import EventType
+from server.bus.event_type import EventType
 
 
 
@@ -63,7 +63,7 @@ class RoomManager:
 
 
         self.bus.subscribe(
-            EventType.JOIN_ROOM_REQUEST,
+            EventType.JOIN_ROOM_COMMAND,
             self.handle_join_room
         )
 

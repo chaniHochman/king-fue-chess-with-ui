@@ -1,6 +1,6 @@
 #מודיעה ללקוח איזו אנימציה להפעיל
-from bus.event import Event
-from bus.event_type import EventType
+from server.bus.event import Event
+from server.bus.event_type import EventType
 
 
 class AnimationService:

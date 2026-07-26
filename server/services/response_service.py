@@ -1,6 +1,6 @@
-from common.message import Message
+from server.messages import Message
 
-from common.message_type import MessageType
+from server.common.message_type import MessageType
 
 
 
@@ -44,7 +44,7 @@ class ResponseService:
         """
 
 
-        from bus.event_type import EventType
+        from server.bus.event_type import EventType
 
 
         self.bus.subscribe(
