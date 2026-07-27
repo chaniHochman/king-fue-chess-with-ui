@@ -2,11 +2,14 @@ from server.bus.message_bus import MessageBus
 
 from server.database.database import Database
 
+from server.authentication.auth_service import AuthService
+
 from server.session.session_manager import SessionManager
 from server.session.session_service import SessionService
 from server.session.session_resolver import SessionResolver
 
 from server.rooms.room_manager import RoomManager
+from server.rooms.room_service import RoomService
 
 from server.game.game_manager import GameManager
 
@@ -15,115 +18,132 @@ from server.services.score_service import ScoreService
 from server.services.sound_service import SoundService
 from server.services.animation_service import AnimationService
 
-from server.authentication.auth_service import AuthService
-
-from server.network.tcp_server import TCPServer
 from server.network.connection_manager import ConnectionManager
+from server.network.tcp_server import TCPServer
 
 from server.commands.client_command_handler import ClientCommandHandler
-
+from server.session.session_disconnect_service import SessionDisconnectService
 from server.bus.event_type import EventType
-
-
+from server.session.reconnect_service import ReconnectService
+from server.session.session_disconnect_service import SessionDisconnectService
 class ServerApp:
     """
     Main server composition root.
 
-    Responsible only for creating
-    and connecting server components.
-    """
+    Creates all server components
+    and connects dependencies.
 
+    Knows:
+    - what exists in the server
+
+    Does not know:
+    - game rules
+    - authentication logic
+    - room logic
+    """
 
 
     # Initialize complete server.
     def __init__(self):
         """
-        Create all server dependencies.
+        Create all components
+        and connect dependencies.
         """
 
 
-        # Central communication system
+        # Central event communication system.
         self.bus = MessageBus()
 
 
-
-        # Database layer
+        # Database storage layer.
         self.database = Database()
 
 
-
-        # Connection management
+        # Network connection storage.
         self.connection_manager = ConnectionManager()
 
 
-
-        # Online users
+        # Active user sessions.
         self.session_manager = SessionManager()
 
 
-
-        # Authentication
-        self.auth_service = AuthService(
+        self.disconnect_service = SessionDisconnectService(
             self.bus,
-            self.database
+            self.session_manager
+        )
+        # Authentication service.
+        self.auth_service = AuthService(
+            self.database,
+            self.bus
         )
 
 
 
-        # Sessions
+        # Creates sessions after login.
         self.session_service = SessionService(
             self.bus,
             self.session_manager
         )
 
 
+
+        # Resolves connection into session.
         self.session_resolver = SessionResolver(
             self.bus,
             self.session_manager
         )
 
+        self.session_disconnect_service = SessionDisconnectService(
+            self.bus,
+            self.session_manager
+        )
+
+        self.reconnect_service = ReconnectService(
+            self.bus,
+            self.session_manager
+        )
+
+        # Room storage manager.
+        self.room_manager = RoomManager()
 
 
-        # Rooms
-        self.room_manager = RoomManager(
-            self.bus
+
+        # Handles room events.
+        self.room_service = RoomService(
+            self.bus,
+            self.room_manager
         )
 
 
 
-        # Games
+        # Active games manager.
         self.game_manager = GameManager(
             self.bus
         )
 
 
 
-        # Server services
-
-        self.logger = LoggerService(
+        # Server services.
+        self.logger_service = LoggerService(
             self.bus
         )
 
-
-        self.score = ScoreService(
+        self.score_service = ScoreService(
             self.bus,
             self.database
         )
 
+        self.sound_service = SoundService(
+            self.bus
+        )
 
-        self.sound = SoundService(
+        self.animation_service = AnimationService(
             self.bus
         )
 
 
-        self.animation = AnimationService(
-            self.bus
-        )
 
-
-
-        # Client command translation
-
+        # Converts client messages into events.
         self.command_handler = ClientCommandHandler(
             self.bus,
             self.session_manager
@@ -131,12 +151,15 @@ class ServerApp:
 
 
 
-        self.register_events()
+        # Receive messages from clients.
+        self.bus.subscribe(
+            EventType.CLIENT_MESSAGE,
+            self.command_handler.handle
+        )
 
 
 
-        # Network server
-
+        # TCP communication server.
         self.server = TCPServer(
             "localhost",
             5000,
@@ -144,22 +167,24 @@ class ServerApp:
             self.bus
         )
 
-    # Register global server listeners.
-    def register_events(self):
-        """
-        Connect external events
-        into the server system.
-        """
 
-        self.bus.subscribe(
-            EventType.CLIENT_MESSAGE,
-            self.command_handler.handle
-        )
 
     # Start server.
     def start(self):
         """
-        Start network server.
+        Start TCP server.
         """
 
         self.server.start()
+
+
+
+    # Stop server.
+    def stop(self):
+        """
+        Shutdown server safely.
+        """
+
+        self.server.stop()
+
+        self.connection_manager.close_all()

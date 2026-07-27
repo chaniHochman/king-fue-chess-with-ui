@@ -1,63 +1,119 @@
-# מחלקת Session מייצגת חיבור אחד לשרת.
-# היא שומרת:
-# המשתמש המחובר
-# הסוקט שלו
-# האם הוא מחובר
-# באיזה חדר הוא נמצא
+import time
 
-#מחלקה זו מייצגת משתמש רק בזמן שהוא מחובר 
+
 class Session:
     """
-    Represents one connected client.
+    Represents one logged-in user session.
 
-    Stores temporary runtime information.
+    Responsible for:
+    - storing user information
+    - storing current connection
+    - tracking room
+    - handling reconnect state
 
     Does not know:
+    - authentication
+    - games
     - database
-    - matchmaking
-    - networking logic
     """
 
-    # Create new online session.
+
+    # Create user session.
     def __init__(
         self,
         user,
         connection
     ):
         """
-        Store user and active connection.
+        Initialize session data.
         """
 
         self.user = user
+
         self.connection = connection
+
         self.room = None
-        self.game = None
+
         self.connected = True
 
-    # Check whether client is online.
-    def is_connected(self):
-        """
-        Return current connection state.
-        """
+        self.disconnect_time = None
 
-        return self.connected
 
-    # Mark client as disconnected.
-    def disconnect(self):
-        """
-        Mark session as offline.
-        """
 
-        self.connected = False
-
-    # Mark client as reconnected.
+    # Replace network connection.
     def reconnect(
         self,
         connection
     ):
         """
-        Attach a new connection.
+        Attach a new client connection
+        to this existing session.
         """
 
         self.connection = connection
+
         self.connected = True
+
+        self.disconnect_time = None
+
+
+
+    # Mark session as disconnected.
+    def disconnect(self):
+        """
+        Mark user as temporarily disconnected.
+        """
+
+        self.connected = False
+
+        self.disconnect_time = time.time()
+
+
+
+    # Check if session is connected.
+    def is_connected(self):
+        """
+        Return connection state.
+        """
+
+        return self.connected
+
+
+
+    # Check reconnect timeout.
+    def disconnected_seconds(
+        self
+    ):
+        """
+        Return how long the user
+        has been disconnected.
+        """
+
+        if self.disconnect_time is None:
+
+            return 0
+
+
+        return time.time() - self.disconnect_time
+
+    
+
+        # Check reconnect availability.
+    def can_reconnect(
+        self,
+        timeout=20
+    ):
+        """
+        Return True if user can reconnect
+        before timeout expires.
+        """
+
+        if self.connected:
+
+            return False
+
+
+        return (
+            self.disconnected_seconds()
+            <= timeout
+        )

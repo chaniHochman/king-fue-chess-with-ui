@@ -1,30 +1,20 @@
-# לקבל:
-
-# connection
-
-# ולהחזיר:
-
-# Session
-
 from server.bus.event import Event
 from server.bus.event_type import EventType
 
 
-
 class SessionResolver:
     """
-    Finds connected user session.
+    Resolves client connection into user session.
 
     Responsible only for:
-    - converting connection into session
+    - finding Session by connection
+    - forwarding events with session attached
 
     Does not know:
     - authentication
     - rooms
     - games
     """
-
-
 
     # Initialize session resolver.
     def __init__(
@@ -33,67 +23,138 @@ class SessionResolver:
         session_manager
     ):
         """
-        Store references
-        and subscribe to requests.
+        Store dependencies
+        and register listeners.
         """
 
-        self.bus = bus
-
-        self.session_manager = session_manager
+        self._bus = bus
+        self._session_manager = session_manager
 
         self.register_events()
-
 
 
     # Register events.
     def register_events(self):
         """
-        Listen to room requests.
+        Subscribe to events
+        that require a Session.
         """
 
-        self.bus.subscribe(
+        self._bus.subscribe(
+            EventType.CREATE_ROOM_REQUEST,
+            self.resolve_create_room
+        )
+
+        self._bus.subscribe(
             EventType.JOIN_ROOM_REQUEST,
-            self.resolve_join_room
+            self.join_room
+        )
+
+        self._bus.subscribe(
+            EventType.MOVE_REQUESTED,
+            self.resolve_move
+        )
+
+        self._bus.subscribe(
+            EventType.MATCH_REQUEST,
+            self.resolve_match
         )
 
 
+    # Resolve create room request.
+    def resolve_create_room(
+        self,
+        event
+    ):
+        """
+        Add Session to create room event.
+        """
 
-    # Find session before joining room.
+        self.forward_event(
+            EventType.CREATE_ROOM_REQUEST,
+            event
+        )
+
+
+    # Resolve join room request.
     def resolve_join_room(
         self,
         event
     ):
         """
-        Add session object
-        into room request.
+        Add Session to join room event.
+        """
+
+        self.forward_event(
+            EventType.JOIN_ROOM_REQUEST,
+            event
+        )
+
+
+    # Resolve move request.
+    def resolve_move(
+        self,
+        event
+    ):
+        """
+        Add Session to move event.
+        """
+
+        self.forward_event(
+            EventType.MOVE_REQUESTED,
+            event
+        )
+
+
+    # Resolve matchmaking request.
+    def resolve_match(
+        self,
+        event
+    ):
+        """
+        Add Session to matchmaking event.
+        """
+
+        self.forward_event(
+            EventType.MATCH_REQUEST,
+            event
+        )
+
+
+    # Find session and publish updated event.
+    def forward_event(
+        self,
+        event_type,
+        event
+    ):
+        """
+        Find session from connection
+        and publish new event.
         """
 
         connection = event.data["connection"]
-
-        room_id = event.data["room_id"]
 
         session = self.find_session(
             connection
         )
 
         if session is None:
-
             return
 
 
+        data = event.data.copy()
 
-        self.bus.publish(
+        data["session"] = session
+
+        event.resolved = True
+        
+        self._bus.publish(
             Event(
-                EventType.JOIN_ROOM_REQUEST,
-                {
-                    "connection": connection,
-
-                    "room_id": room_id,
-
-                    "session": session
-                }
+                event_type,
+                data
             )
         )
+
 
     # Find session by connection.
     def find_session(
@@ -101,19 +162,10 @@ class SessionResolver:
         connection
     ):
         """
-        Search active sessions.
+        Search SessionManager
+        for matching connection.
         """
 
-
-        sessions = (
-            self.session_manager
-            .get_all_sessions()
+        return self._session_manager.get_by_connection(
+            connection
         )
-
-        for session in sessions:
-
-            if session.connection == connection:
-
-                return session
-
-        return None

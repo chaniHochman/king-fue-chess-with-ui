@@ -7,8 +7,6 @@
 # האם המשחק הסתיים.
 # להחזיר Snapshot.
 # להעביר מהלכים ל־ServerGame.
-from server.bus.event import Event
-from server.bus.event_type import EventType
 
 
 class GameSession:
@@ -43,45 +41,26 @@ class GameSession:
         self.bus = bus
         self.finished = False
 
-    # Execute one player move.
-    def make_move(
-        self,
+# Execute one player move.
+def make_move(
+    self,
+    move
+):
+    """
+    Forward move to ServerGame.
+
+    Does not publish events.
+    GameManager handles events.
+    """
+
+    if self.finished:
+
+        return None
+
+
+    return self.server_game.make_move(
         move
-    ):
-        """
-        Forward move to ServerGame.
-        """
-
-        if self.finished:
-            return None
-
-        result = self.server_game.make_move(move)
-
-        if result.success:
-
-            self.bus.publish(
-                Event(
-                    EventType.MOVE_ACCEPTED,
-                    {
-                        "room_id": self.room.room_id,
-                        "move": move
-                    }
-                )
-            )
-
-        else:
-
-            self.bus.publish(
-                Event(
-                    EventType.MOVE_REJECTED,
-                    {
-                        "room_id": self.room.room_id,
-                        "move": move
-                    }
-                )
-            )
-
-        return result
+    )
 
     # Finish the current game.
     def finish(self):

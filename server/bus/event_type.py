@@ -52,15 +52,17 @@ class EventType(Enum):
 
     JOIN_ROOM_REQUEST = "join_room_request"
 
-    ROOM_CREATED = "room_created"
+    LEAVE_ROOM_REQUEST = "leave_room_request"
 
-    ROOM_REMOVED = "room_removed"
+    ROOM_CREATED = "room_created"
 
     PLAYER_JOINED_ROOM = "player_joined_room"
 
     PLAYER_LEFT_ROOM = "player_left_room"
 
     ROOM_JOIN_FAILED = "room_join_failed"
+
+    ROOM_REMOVED = "room_removed"
 
 
 
@@ -123,3 +125,8 @@ class EventType(Enum):
     # Logging
 
     SERVER_LOG = "server_log"
+
+
+    SESSION_CREATED = "session_created"
+
+    RECONNECT_REQUEST = "reconnect_request"

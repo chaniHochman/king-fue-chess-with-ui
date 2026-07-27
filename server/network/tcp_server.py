@@ -97,11 +97,17 @@ class TCPServer:
             thread.start()
 
 
-
+    # Handle one client connection.
     def _handle_client(
         self,
         connection
     ):
+        """
+        Receive messages from one client.
+
+        When client disconnects,
+        publish disconnect event.
+        """
 
 
         while connection.is_connected():
@@ -110,20 +116,56 @@ class TCPServer:
 
 
             if message is None:
+
+                self._bus.publish(
+
+                    Event(
+
+                        EventType.PLAYER_DISCONNECTED,
+
+                        {
+                            "connection": connection
+                        }
+
+                    )
+
+                )
+
                 break
 
 
-
             self._bus.publish(
+
                 Event(
+
                     EventType.CLIENT_MESSAGE,
+
                     {
                         "connection": connection,
+
                         "message": message
                     }
+
                 )
+
             )
 
+
+
+        # Notify server about disconnect.
+        self._bus.publish(
+
+            Event(
+
+                EventType.PLAYER_DISCONNECTED,
+
+                {
+                    "connection": connection
+                }
+
+            )
+
+        )
 
 
         self._connection_manager.remove(

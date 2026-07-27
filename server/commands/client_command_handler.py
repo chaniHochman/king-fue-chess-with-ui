@@ -26,7 +26,7 @@ class ClientCommandHandler:
     def __init__(
         self,
         bus,
-        session_manager
+        session_resolver
     ):
         """
         Initialize command handler.
@@ -36,7 +36,7 @@ class ClientCommandHandler:
 
         self._bus = bus
 
-        self._session_manager = session_manager
+        self._session_resolver = session_resolver
 
 
 
@@ -68,7 +68,12 @@ class ClientCommandHandler:
                 payload
             )
 
+        elif message_type == MessageType.RECONNECT:
 
+            self._handle_reconnect(
+                connection,
+                payload
+            )
 
         elif message_type == MessageType.REGISTER:
 
@@ -114,29 +119,29 @@ class ClientCommandHandler:
 
 
     # Find session by client connection.
-    def get_session(
-        self,
-        connection
-    ):
-        """
-        Return the active session
-        that belongs to this connection.
-        """
+    # def get_session(
+    #     self,
+    #     connection
+    # ):
+    #     """
+    #     Return the active session
+    #     that belongs to this connection.
+    #     """
 
-        sessions = (
-            self._session_manager.get_all_sessions()
-        )
-
-
-        for session in sessions:
-
-            if session.connection == connection:
-
-                return session
+    #     sessions = (
+    #         self._session_manager.get_all_sessions()
+    #     )
 
 
+    #     for session in sessions:
 
-        return None
+    #         if session.connection == connection:
+
+    #             return session
+
+
+
+    #     return None
 
 
 
@@ -217,9 +222,7 @@ class ClientCommandHandler:
         """
 
 
-        session = self.get_session(
-            connection
-        )
+        session = self._resolver.resolve(connection)
 
 
         self._bus.publish(
@@ -250,15 +253,12 @@ class ClientCommandHandler:
         Publish join room request
         with current session.
         """
-        # session = self.get_session(
-        #     connection
-        # )
 
         self._bus.publish(
 
             Event(
 
-                EventType.JOIN_ROOM_COMMAND,
+                EventType.JOIN_ROOM_REQUEST,
 
                 {
                     "connection": connection,
@@ -286,9 +286,7 @@ class ClientCommandHandler:
         """
 
 
-        session = self.get_session(
-            connection
-        )
+        session = self._resolver.resolve(connection)
 
 
 
@@ -323,9 +321,7 @@ class ClientCommandHandler:
         """
 
 
-        session = self.get_session(
-            connection
-        )
+        session = self._resolver.resolve(connection)
 
 
 
@@ -339,6 +335,34 @@ class ClientCommandHandler:
                     "connection": connection,
 
                     "session": session
+                }
+
+            )
+
+        )
+
+            # Creates reconnect request event.
+    def _handle_reconnect(
+        self,
+        connection,
+        payload
+    ):
+        """
+        Publish reconnect request.
+        """
+
+
+        self._bus.publish(
+
+            Event(
+
+                EventType.RECONNECT_REQUEST,
+
+                {
+                    "connection": connection,
+
+                    "username":
+                    payload["username"]
                 }
 
             )

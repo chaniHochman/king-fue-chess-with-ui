@@ -30,6 +30,7 @@ class Event:
 
         self.time = datetime.now()
 
+        self.resolved = False
 
 
     # Return readable event text.

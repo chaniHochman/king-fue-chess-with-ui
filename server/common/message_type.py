@@ -2,7 +2,6 @@
 from enum import Enum
 
 
-
 class MessageType(Enum):
     """
     Defines all network messages.
@@ -10,7 +9,6 @@ class MessageType(Enum):
 
 
     LOGIN = "LOGIN"
-
 
     REGISTER = "REGISTER"
 
@@ -20,9 +18,7 @@ class MessageType(Enum):
 
     CREATE_ROOM = "CREATE_ROOM"
 
-
     JOIN_ROOM = "JOIN_ROOM"
-
 
     CANCEL_ROOM = "CANCEL_ROOM"
 
@@ -30,16 +26,16 @@ class MessageType(Enum):
     MOVE = "MOVE"
 
 
+    RECONNECT = "RECONNECT"
+
+
     GAME_STATE = "GAME_STATE"
 
-
     GAME_STARTED = "GAME_STARTED"
-
 
     GAME_ENDED = "GAME_ENDED"
 
 
     ERROR = "ERROR"
-
 
     SCORE_UPDATE = "SCORE_UPDATE"

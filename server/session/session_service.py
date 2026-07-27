@@ -8,21 +8,19 @@ from server.bus.event import Event
 from server.bus.event_type import EventType
 
 
-
 class SessionService:
     """
-    Creates and manages online sessions.
+    Creates online sessions.
 
-    Responsible for:
+    Responsible only for:
     - creating Session objects
-    - adding sessions to SessionManager
+    - storing sessions
 
     Does not know:
-    - authentication logic
+    - authentication
     - rooms
     - games
     """
-
 
 
     # Initialize session service.
@@ -32,8 +30,8 @@ class SessionService:
         session_manager
     ):
         """
-        Initialize service
-        and subscribe to events.
+        Store dependencies
+        and register listeners.
         """
 
         self.bus = bus
@@ -44,10 +42,10 @@ class SessionService:
 
 
 
-    # Register session events.
+    # Register event listeners.
     def register_events(self):
         """
-        Subscribe to login success events.
+        Listen to successful login.
         """
 
         self.bus.subscribe(
@@ -57,14 +55,16 @@ class SessionService:
 
 
 
-    # Create new online session.
+    # Create session after login.
     def create_session(
         self,
         event
     ):
         """
-        Create session after successful login.
+        Create a new online session
+        and notify the server.
         """
+
 
         user = event.data["user"]
 
@@ -79,4 +79,22 @@ class SessionService:
 
         self.session_manager.add_session(
             session
+        )
+
+
+        self.bus.publish(
+
+            Event(
+
+                EventType.SESSION_CREATED,
+
+                {
+                    "session": session,
+
+                    "username":
+                    user.username
+                }
+
+            )
+
         )
