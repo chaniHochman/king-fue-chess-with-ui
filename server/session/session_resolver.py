@@ -112,7 +112,7 @@ class SessionResolver:
 
         for session in sessions:
 
-            if session.connected == connection:
+            if session.connection == connection:
 
                 return session
 

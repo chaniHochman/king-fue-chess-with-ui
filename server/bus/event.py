@@ -1,19 +1,47 @@
+from datetime import datetime
+import uuid
+
+
 class Event:
     """
     Represents an internal server event.
 
-    Events are transferred through
-    MessageBus between server components.
+    Events are passed through MessageBus.
     """
 
 
-    # Create a new event.
+    # Create new event.
     def __init__(
         self,
         event_type,
         data=None
     ):
+        """
+        Store event information.
+        """
+
+        self.id = str(
+            uuid.uuid4()
+        )
 
         self.type = event_type
 
-        self.data = data or {} #מידע נוסף
+        self.data = data or {}
+
+        self.time = datetime.now()
+
+
+
+    # Return readable event text.
+    def __repr__(self):
+        """
+        Return debug representation.
+        """
+
+        return (
+            f"Event("
+            f"id={self.id}, "
+            f"type={self.type}, "
+            f"data={self.data}"
+            f")"
+        )

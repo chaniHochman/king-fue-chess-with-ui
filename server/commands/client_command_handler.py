@@ -15,8 +15,6 @@ from server.bus.event_type import EventType
 
 from server.common.message_type import MessageType
 
-
-
 class ClientCommandHandler:
     """
     Converts client messages
@@ -24,9 +22,6 @@ class ClientCommandHandler:
 
     Does not contain business logic.
     """
-
-
-
     # Creates command handler.
     def __init__(
         self,
@@ -135,7 +130,7 @@ class ClientCommandHandler:
 
         for session in sessions:
 
-            if session.connected == connection:
+            if session.connection == connection:
 
                 return session
 

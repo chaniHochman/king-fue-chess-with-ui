@@ -1,75 +1,69 @@
 #רושמת אירועים ללוג
 from datetime import datetime
+from server.bus.event_type import EventType
 
 
 class LoggerService:
     """
-    Handles server event logging.
+    Logs important server events.
 
-    Receives events from MessageBus
-    and saves them into log file.
+    Responsible only for:
+    - receiving events
+    - writing log file
+
+    Does not know:
+    - networking
+    - rooms
+    - games
     """
 
+    # Create logger service.
+    def __init__(self,bus):
 
-    # Initialize logger service.
-    def __init__(
-        self,
-        bus
-    ):
-
-        self.bus = bus
-
-        self.file_name = (
-            "logs/server.log"
-        )
+        self.bus=bus
+        self.file_name="logs/server.log"
 
         self.register_events()
 
-
-
-    # Subscribe to logging events.
+    # Subscribe to server events.
     def register_events(self):
+        """
+        Register all events that should be logged.
+        """
 
-        self.bus.subscribe(
-            "PLAYER_CONNECTED",
-            self.write_log
+        events=[
+            EventType.PLAYER_CONNECTED,
+            EventType.PLAYER_DISCONNECTED,
+            EventType.LOGIN_SUCCESS,
+            EventType.LOGIN_FAILED,
+            EventType.ROOM_CREATED,
+            EventType.PLAYER_JOINED_ROOM,
+            EventType.PLAYER_LEFT_ROOM,
+            EventType.GAME_STARTED,
+            EventType.GAME_FINISHED,
+            EventType.MOVE_ACCEPTED,
+            EventType.MOVE_REJECTED
+        ]
+
+        for event_type in events:
+            self.bus.subscribe(
+                event_type,
+                self.write_log
+            )
+
+    # Write one event into the log file.
+    def write_log(self,event):
+        """
+        Save one event into the server log.
+        """
+
+        timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        text=(
+            f"{timestamp} | "
+            f"{event.type.value} | "
+            f"{event.data}\n"
         )
-
-        self.bus.subscribe(
-            "PLAYER_DISCONNECTED",
-            self.write_log
-        )
-
-        self.bus.subscribe(
-            "MOVE_ACCEPTED",
-            self.write_log
-        )
-
-        self.bus.subscribe(
-            "GAME_STARTED",
-            self.write_log
-        )
-
-        self.bus.subscribe(
-            "GAME_ENDED",
-            self.write_log
-        )
-
-
-
-    # Write event information into log file.
-    def write_log(
-        self,
-        event
-    ):
-
-        timestamp = datetime.now()
-
-        text = (
-            f"{timestamp} "
-            f"{event}\n"
-        )
-
 
         with open(
             self.file_name,
