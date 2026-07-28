@@ -1,48 +1,85 @@
+from server.bus.event import Event
+from server.bus.event_type import EventType
+
+
+
 class SessionManager:
     """
-    Manages all active user sessions.
+    Manages connected user sessions.
 
-    Responsible only for:
+    Responsible for:
+    - creating sessions
     - storing sessions
-    - finding sessions
-    - removing expired sessions
+    - removing sessions
+    - tracking disconnects
+
+    Does not know:
+    - authentication logic
+    - rooms
+    - games
+    - database
     """
 
 
-    # Initialize session storage.
-    def __init__(self):
 
-        self.sessions = {}
-
-
-
-    # Add session.
-    def add_session(
+    # Initialize session manager.
+    def __init__(
         self,
-        session
+        bus=None
     ):
         """
-        Store a logged-in session.
+        Store sessions.
         """
 
-        self.sessions[
-            session.user.username
-        ] = session
+        self._bus = bus
+
+        self._sessions = []
 
 
 
-    # Find session by username.
-    def get_session(
+    # Create new session.
+    def create_session(
         self,
-        username
+        connection,
+        user=None
     ):
         """
-        Return session by username.
+        Create and store session.
         """
 
-        return self.sessions.get(
-            username
+        from server.session.session import Session
+
+
+        session = Session(
+            connection,
+            user
         )
+
+
+        self._sessions.append(
+            session
+        )
+
+
+        if self._bus:
+
+            self._bus.publish(
+
+                Event(
+
+                    EventType.SESSION_CREATED,
+
+                    {
+                        "session":
+                        session
+                    }
+
+                )
+
+            )
+
+
+        return session
 
 
 
@@ -52,11 +89,11 @@ class SessionManager:
         connection
     ):
         """
-        Return session attached
-        to a network connection.
+        Return session
+        attached to connection.
         """
 
-        for session in self.sessions.values():
+        for session in self._sessions:
 
             if session.connection == connection:
 
@@ -67,110 +104,87 @@ class SessionManager:
 
 
 
-    # Mark session disconnected.
-    def disconnect_session(
-        self,
-        connection
-    ):
-        """
-        Mark session as disconnected.
-
-        Does not delete it.
-        """
-
-        session = self.get_by_connection(
-            connection
-        )
-
-
-        if session:
-
-            session.disconnect()
-
-
-        return session
-
-
-
-    # Remove expired session.
+    # Remove session.
     def remove_session(
         self,
-        username
+        session
     ):
         """
-        Permanently remove session.
+        Remove session.
         """
 
-        self.sessions.pop(
-            username,
-            None
-        )
+        if session in self._sessions:
+
+            self._sessions.remove(
+                session
+            )
+
+
+            if self._bus:
+
+                self._bus.publish(
+
+                    Event(
+
+                        EventType.SESSION_REMOVED,
+
+                        {
+                            "session":
+                            session
+                        }
+
+                    )
+
+                )
+
+
+
+    # Mark session disconnected.
+    def disconnect(
+        self,
+        session
+    ):
+        """
+        Mark player as disconnected.
+
+        DisconnectMonitor will
+        handle timeout.
+        """
+
+        session.connected = False
 
 
 
     # Return all sessions.
-    def get_all_sessions(self):
+    def get_all_sessions(
+        self
+    ):
         """
-        Return all stored sessions.
+        Return sessions list.
         """
 
         return list(
-            self.sessions.values()
+            self._sessions
         )
 
 
 
-    # Check online state.
-    def is_online(
+    # Find session by username.
+    def get_by_username(
         self,
         username
     ):
         """
-        Check if user is connected.
+        Return user's session.
         """
 
-        session = self.get_session(
-            username
-        )
+        for session in self._sessions:
+
+            if session.user:
+
+                if session.user.username == username:
+
+                    return session
 
 
-        if session is None:
-
-            return False
-
-
-        return session.is_connected()
-
-    # Mark session as disconnected.
-    def disconnect_session(
-        self,
-        connection
-    ):
-        """
-        Find session by connection
-        and mark it disconnected.
-        """
-
-        session = self.get_by_connection(
-            connection
-        )
-
-
-        if session is None:
-            return None
-
-
-        session.disconnect()
-
-
-        return session
-
-    def has_session(
-        self,
-        username
-    ):
-        """
-        Return True if a session already exists.
-        """
-
-        return username in self.sessions
+        return None

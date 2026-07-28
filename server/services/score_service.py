@@ -1,3 +1,4 @@
+from server.bus.event import Event
 from server.bus.event_type import EventType
 
 
@@ -5,15 +6,17 @@ class ScoreService:
     """
     Calculates and updates ELO ratings.
 
-    Responsible only for:
-    - calculating rating changes
-    - saving new ratings
+    Responsible for:
+    - calculating ELO changes
+    - updating database ratings
+    - publishing score events
 
     Does not know:
-    - games
-    - rooms
+    - game rules
     - networking
+    - authentication
     """
+
 
 
     # Initialize score service.
@@ -23,24 +26,28 @@ class ScoreService:
         database
     ):
         """
-        Store dependencies
-        and register events.
+        Store dependencies.
         """
 
-        self.bus = bus
-        self.database = database
+        self._bus = bus
+
+        self._database = database
+
+        self._k_factor = 32
 
         self.register_events()
 
 
 
-    # Register game finish events.
-    def register_events(self):
+    # Register score events.
+    def register_events(
+        self
+    ):
         """
-        Subscribe to finished games.
+        Subscribe to game finish event.
         """
 
-        self.bus.subscribe(
+        self._bus.subscribe(
             EventType.GAME_FINISHED,
             self.update_rating
         )
@@ -53,52 +60,94 @@ class ScoreService:
         event
     ):
         """
-        Calculate and save
-        new ELO ratings.
+        Calculate and save new ratings.
         """
 
-        winner = event.data["winner"]
+        winner = event.data.get(
+            "winner"
+        )
 
-        loser = event.data["loser"]
+        loser = event.data.get(
+            "loser"
+        )
+
+
+        if winner is None or loser is None:
+            return
+
 
 
         winner_rating = (
-            self.database
+            self._database
             .get_rating(winner)
         )
 
+
         loser_rating = (
-            self.database
+            self._database
             .get_rating(loser)
         )
 
 
-        new_winner_rating = (
-            self.calculate_elo(
-                winner_rating,
-                loser_rating,
-                True
-            )
+        if winner_rating is None:
+            return
+
+
+        if loser_rating is None:
+            return
+
+
+
+        new_winner_rating = self.calculate_elo(
+            winner_rating,
+            loser_rating,
+            True
         )
 
 
-        new_loser_rating = (
-            self.calculate_elo(
-                loser_rating,
-                winner_rating,
-                False
-            )
+        new_loser_rating = self.calculate_elo(
+            loser_rating,
+            winner_rating,
+            False
         )
 
 
-        self.database.update_rating(
+
+        self._database.update_rating(
             winner,
             new_winner_rating
         )
 
-        self.database.update_rating(
+
+        self._database.update_rating(
             loser,
             new_loser_rating
+        )
+
+
+
+        self._bus.publish(
+
+            Event(
+
+                EventType.SCORE_UPDATED,
+
+                {
+                    "winner":
+                    winner,
+
+                    "winner_rating":
+                    new_winner_rating,
+
+                    "loser":
+                    loser,
+
+                    "loser_rating":
+                    new_loser_rating
+                }
+
+            )
+
         )
 
 
@@ -111,35 +160,62 @@ class ScoreService:
         won
     ):
         """
-        Calculate ELO change.
-
-        Uses standard ELO formula.
+        Calculate new ELO rating.
         """
 
-        expected = (
+
+        expected_score = (
+
             1 /
+
             (
                 1 +
+
                 10 **
                 (
-                    (opponent_rating - player_rating)
+                    (
+                        opponent_rating
+                        -
+                        player_rating
+                    )
                     /
                     400
                 )
+
             )
+
         )
 
 
-        actual = 1 if won else 0
+        if won:
+
+            actual_score = 1
+
+        else:
+
+            actual_score = 0
 
 
-        k_factor = 32
+
+        new_rating = (
+
+            player_rating
+
+            +
+
+            self._k_factor
+
+            *
+
+            (
+                actual_score
+                -
+                expected_score
+            )
+
+        )
 
 
         return round(
-            player_rating +
-            k_factor *
-            (
-                actual - expected
-            )
+            new_rating
         )

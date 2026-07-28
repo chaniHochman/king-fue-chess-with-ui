@@ -3,62 +3,82 @@
 # Client
 # Server
 # מייצגת הודעה אחידה בין הלקוח לשרת (סוג הודעה + נתונים).
-import json
+from server.common.message_type import MessageType
+
 
 class Message:
     """
-    Represents a message
-    exchanged between client and server.
+    Represents communication message.
+
+    Responsible for:
+    - storing message type
+    - storing message data
+
+    Does not know:
+    - network
+    - users
+    - games
     """
 
-    def __init__(self, message_type, payload):
 
+
+    # Initialize message.
+    def __init__(
+        self,
+        message_type,
+        data
+    ):
         """
-        Create a new message.
-
-        message_type:
-        Defines the action.
-
-        payload:
-        Contains message data.
+        Store message information.
         """
 
         self.type = message_type
 
-        self.payload = payload
+        self.data = data or {}
 
 
 
-    def to_json(self):
-
+    # Convert message to dictionary.
+    def to_dict(
+        self
+    ):
         """
-        Convert message object
-        into JSON format.
+        Return message representation.
         """
-        return json.dumps(
-            {
-                "type": self.type,
 
-                "payload": self.payload
-            }
-        )
+        return {
+
+            "type":
+            self.type.value,
+
+            "data":
+            self.data
+
+        }
 
 
 
+    # Create message from dictionary.
     @staticmethod
-    def from_json(data):
+    def from_dict(
+        data
+    ):
+        """
+        Build Message object.
+        """
 
-        """
-        Create Message object
-        from JSON string.
-        """
-        obj = json.loads(data)
+        message_type = MessageType(
+            data["type"]
+        )
 
 
         return Message(
 
-            obj["type"],
+            message_type,
 
-            obj["payload"]
+            data.get(
+                "data",
+                {}
+            )
 
         )

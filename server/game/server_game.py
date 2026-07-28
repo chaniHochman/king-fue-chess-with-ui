@@ -1,68 +1,82 @@
-# שמירת מצב משחק אחד.
-# הפעלת GameEngine.
-
-# היא לא אחראית על תקשורת רשת.
-
 class ServerGame:
     """
-    Represents one active chess game.
+    Represents one running game.
 
-    Stores players,
-    game engine and current state.
+    Responsible for:
+    - connecting server with GameEngine
+    - sending moves to engine
+    - returning game snapshot
+
+    Does not know:
+    - networking
+    - sessions
+    - database
+    - matchmaking
     """
 
 
 
-    # Create a new server game.
+    # Initialize server game.
     def __init__(
         self,
         room,
         game_engine
     ):
+        """
+        Store room and engine.
+        """
 
         self.room = room
 
         self.game_engine = game_engine
 
-        self.finished = False
 
 
-
-    # Process a player move.
+    # Process player move.
     def make_move(
         self,
         move
     ):
+        """
+        Send move to GameEngine.
+        """
 
-        if isinstance(move, (tuple, list)) and len(move) == 2:
-            source, target = move
-            result = self.game_engine.request_move(source, target)
-            return result
+        if isinstance(move, (tuple, list)):
 
-        result = (
-            self.game_engine.request_move(
-                move
-            )
+            if len(move) == 2:
+
+                source, target = move
+
+                return self.game_engine.request_move(
+                    source,
+                    target
+                )
+
+
+        return self.game_engine.request_move(
+            move
         )
 
-        return result
 
 
-
-    # Check if game ended.
-    def is_finished(
-        self
-    ):
-
-        return self.finished
-
-        # Return current game state.
+    # Return game snapshot.
     def get_snapshot(
         self
     ):
         """
-        Return current snapshot
-        from game engine.
+        Return current game state.
         """
 
         return self.game_engine.create_snapshot()
+
+
+
+    # Check game engine state.
+    def is_finished(
+        self
+    ):
+        """
+        Ask engine if game ended.
+        """
+
+        return self.game_engine.is_game_over()

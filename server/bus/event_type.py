@@ -44,6 +44,7 @@ class EventType(Enum):
 
     SESSION_RECONNECTED = "session_reconnected"
 
+    SESSION_DISCONNECTED = "session_disconnected"
 
 
     # Room events
@@ -63,6 +64,8 @@ class EventType(Enum):
     ROOM_JOIN_FAILED = "room_join_failed"
 
     ROOM_REMOVED = "room_removed"
+
+    ROOM_READY = "room_ready"
 
 
 
@@ -131,3 +134,5 @@ class EventType(Enum):
 
 
     RECONNECT_REQUEST = "reconnect_request"
+
+    GAME_REMOVED = "game_removed"

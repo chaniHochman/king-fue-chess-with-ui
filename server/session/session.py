@@ -3,34 +3,35 @@ import time
 
 class Session:
     """
-    Represents one logged-in user session.
+    Represents connected user session.
 
     Responsible for:
-    - storing user information
-    - storing current connection
-    - tracking room
-    - handling reconnect state
+    - storing connection
+    - storing user
+    - tracking connection state
+    - tracking current room
 
     Does not know:
-    - authentication
+    - authentication logic
     - games
     - database
     """
 
 
-    # Create user session.
+
+    # Initialize session.
     def __init__(
         self,
-        user,
-        connection
+        connection,
+        user=None
     ):
         """
-        Initialize session data.
+        Store client connection and user.
         """
 
-        self.user = user
-
         self.connection = connection
+
+        self.user = user
 
         self.room = None
 
@@ -40,14 +41,27 @@ class Session:
 
 
 
-    # Replace network connection.
+    # Mark session disconnected.
+    def disconnect(
+        self
+    ):
+        """
+        Update disconnect state.
+        """
+
+        self.connected = False
+
+        self.disconnect_time = time.time()
+
+
+
+    # Restore session connection.
     def reconnect(
         self,
         connection
     ):
         """
-        Attach a new client connection
-        to this existing session.
+        Reconnect existing session.
         """
 
         self.connection = connection
@@ -58,62 +72,42 @@ class Session:
 
 
 
-    # Mark session as disconnected.
-    def disconnect(self):
+    # Attach user to session.
+    def set_user(
+        self,
+        user
+    ):
         """
-        Mark user as temporarily disconnected.
-        """
-
-        self.connected = False
-
-        self.disconnect_time = time.time()
-
-
-
-    # Check if session is connected.
-    def is_connected(self):
-        """
-        Return connection state.
+        Store authenticated user.
         """
 
-        return self.connected
+        self.user = user
 
 
 
-    # Check reconnect timeout.
-    def disconnected_seconds(
+    # Check if user is authenticated.
+    def is_authenticated(
         self
     ):
         """
-        Return how long the user
-        has been disconnected.
+        Return authentication state.
         """
 
-        if self.disconnect_time is None:
-
-            return 0
+        return self.user is not None
 
 
-        return time.time() - self.disconnect_time
 
-    
-
-        # Check reconnect availability.
-    def can_reconnect(
+    # Send message to client.
+    def send(
         self,
-        timeout=20
+        message
     ):
         """
-        Return True if user can reconnect
-        before timeout expires.
+        Send message through connection.
         """
 
-        if self.connected:
+        if self.connection:
 
-            return False
-
-
-        return (
-            self.disconnected_seconds()
-            <= timeout
-        )
+            self.connection.send(
+                message
+            )

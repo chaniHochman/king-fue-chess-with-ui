@@ -1,370 +1,255 @@
-# הוא רק מתרגם הודעה → Event.
-#
-# הוא לא מכיל לוגיקה של:
-# משתמשים
-# חדרים
-# משחקים
-#
-# הוא מקבל הודעה מהלקוח
-# ומפרסם Event דרך MessageBus.
-
-
 from server.bus.event import Event
-
 from server.bus.event_type import EventType
 
-from server.common.message_type import MessageType
+from server.messages import Message
+
 
 class ClientCommandHandler:
     """
     Converts client messages
-    into server events.
+    into internal server events.
 
-    Does not contain business logic.
+    Responsible for:
+    - parsing client commands
+    - finding session
+    - publishing server events
+
+    Does not know:
+    - authentication logic
+    - game rules
+    - database
     """
-    # Creates command handler.
+
+
+    # Initialize command handler.
     def __init__(
         self,
         bus,
         session_resolver
     ):
         """
-        Initialize command handler.
-
-        Stores MessageBus and SessionManager.
+        Store dependencies.
         """
 
         self._bus = bus
 
         self._session_resolver = session_resolver
 
+        self.register_events()
 
 
-    # Handles client message event.
-    def handle(
+    # Register client messages.
+    def register_events(
+        self
+    ):
+        """
+        Listen to network messages.
+        """
+
+        self._bus.subscribe(
+            EventType.CLIENT_MESSAGE,
+            self.handle_message
+        )
+
+
+    # Handle incoming message.
+    def handle_message(
         self,
         event
     ):
         """
-        Receive client message
-        and convert it into server event.
+        Convert client command
+        into internal events.
         """
 
-        connection = event.data["connection"]
+        connection = event.data.get(
+            "connection"
+        )
 
-        message = event.data["message"]
+        raw_message = event.data.get(
+            "message"
+        )
 
+        if raw_message is None:
 
-        message_type = message.type
-
-        payload = message.payload
-
-
-
-        if message_type == MessageType.LOGIN:
-
-            self._handle_login(
-                connection,
-                payload
-            )
-
-        elif message_type == MessageType.RECONNECT:
-
-            self._handle_reconnect(
-                connection,
-                payload
-            )
-
-        elif message_type == MessageType.REGISTER:
-
-            self._handle_register(
-                connection,
-                payload
-            )
+            return
 
 
-
-        elif message_type == MessageType.CREATE_ROOM:
-
-            self._handle_create_room(
-                connection
-            )
-
-
-
-        elif message_type == MessageType.JOIN_ROOM:
-
-            self._handle_join_room(
-                connection,
-                payload
-            )
-
-
-
-        elif message_type == MessageType.PLAY:
-
-            self._handle_play(
-                connection
-            )
-
-
-
-        elif message_type == MessageType.MOVE:
-
-            self._handle_move(
-                connection,
-                payload
-            )
-
-
-
-    # Find session by client connection.
-    # def get_session(
-    #     self,
-    #     connection
-    # ):
-    #     """
-    #     Return the active session
-    #     that belongs to this connection.
-    #     """
-
-    #     sessions = (
-    #         self._session_manager.get_all_sessions()
-    #     )
-
-
-    #     for session in sessions:
-
-    #         if session.connection == connection:
-
-    #             return session
-
-
-
-    #     return None
-
-
-
-    # Creates login request event.
-    def _handle_login(
-        self,
-        connection,
-        payload
-    ):
-        """
-        Publish login request.
-        """
-
-
-        self._bus.publish(
-
-            Event(
-
-                EventType.LOGIN_REQUEST,
-
-                {
-                    "connection": connection,
-
-                    "username":
-                    payload["username"],
-
-                    "password":
-                    payload["password"]
-                }
-
-            )
-
+        message = Message.from_dict(
+            raw_message
         )
 
 
+        # Login does not have session yet.
+        if message.type.value == "login":
 
-    # Creates register request event.
-    def _handle_register(
-        self,
-        connection,
-        payload
-    ):
-        """
-        Publish register request.
-        """
+            self._bus.publish(
 
+                Event(
 
-        self._bus.publish(
+                    EventType.LOGIN_REQUEST,
 
-            Event(
+                    {
+                        "connection": connection,
 
-                EventType.REGISTER_REQUEST,
+                        "username":
+                        message.data["username"],
 
-                {
-                    "connection": connection,
+                        "password":
+                        message.data["password"]
+                    }
 
-                    "username":
-                    payload["username"],
-
-                    "password":
-                    payload["password"]
-                }
+                )
 
             )
 
-        )
+            return
 
 
+        # Register does not have session yet.
+        if message.type.value == "register":
 
-    # Creates room creation request event.
-    def _handle_create_room(
-        self,
-        connection
-    ):
-        """
-        Publish room creation request
-        with current session.
-        """
+            self._bus.publish(
 
+                Event(
 
-        session = self._resolver.resolve(connection)
+                    EventType.REGISTER_REQUEST,
 
+                    {
+                        "connection": connection,
 
-        self._bus.publish(
+                        "username":
+                        message.data["username"],
 
-            Event(
+                        "password":
+                        message.data["password"]
+                    }
 
-                EventType.CREATE_ROOM_REQUEST,
-
-                {
-                    "connection": connection,
-
-                    "session": session
-                }
+                )
 
             )
 
+            return
+
+
+        session = self._session_resolver.get_session(
+            connection
         )
 
+        if session is None:
+
+            return
 
 
-    # Creates join room request event.
-    def _handle_join_room(
-        self,
-        connection,
-        payload
-    ):
-        """
-        Publish join room request
-        with current session.
-        """
+        if message.type.value == "create_room":
 
-        self._bus.publish(
+            self._bus.publish(
 
-            Event(
+                Event(
 
-                EventType.JOIN_ROOM_REQUEST,
+                    EventType.CREATE_ROOM_REQUEST,
 
-                {
-                    "connection": connection,
+                    {
+                        "session":
+                        session
+                    }
 
-                    # "session": session,
-
-                    "room_id":
-                    payload["room_id"]
-                }
+                )
 
             )
 
-        )
 
+        elif message.type.value == "join_room":
 
+            self._bus.publish(
 
-    # Creates move request event.
-    def _handle_move(
-        self,
-        connection,
-        payload
-    ):
-        """
-        Publish move request.
-        """
+                Event(
 
+                    EventType.JOIN_ROOM_REQUEST,
 
-        session = self._resolver.resolve(connection)
+                    {
+                        "session":
+                        session,
 
+                        "room_id":
+                        message.data["room_id"]
+                    }
 
-
-        self._bus.publish(
-
-            Event(
-
-                EventType.MOVE_REQUESTED,
-
-                {
-                    "connection": connection,
-
-                    "session": session,
-
-                    "move":
-                    payload["move"]
-                }
+                )
 
             )
 
-        )
 
+        elif message.type.value == "leave_room":
 
+            self._bus.publish(
 
-    # Creates matchmaking request event.
-    def _handle_play(
-        self,
-        connection
-    ):
-        """
-        Publish matchmaking request.
-        """
+                Event(
 
+                    EventType.LEAVE_ROOM_REQUEST,
 
-        session = self._resolver.resolve(connection)
+                    {
+                        "session":
+                        session
+                    }
 
-
-
-        self._bus.publish(
-
-            Event(
-
-                EventType.MATCH_REQUEST,
-
-                {
-                    "connection": connection,
-
-                    "session": session
-                }
+                )
 
             )
 
-        )
 
-            # Creates reconnect request event.
-    def _handle_reconnect(
-        self,
-        connection,
-        payload
-    ):
-        """
-        Publish reconnect request.
-        """
+        elif message.type.value == "move":
 
+            self._bus.publish(
 
-        self._bus.publish(
+                Event(
 
-            Event(
+                    EventType.MOVE_REQUESTED,
 
-                EventType.RECONNECT_REQUEST,
+                    {
+                        "session":
+                        session,
 
-                {
-                    "connection": connection,
+                        "move":
+                        message.data["move"]
+                    }
 
-                    "username":
-                    payload["username"]
-                }
+                )
 
             )
 
-        )
+
+        elif message.type.value == "match":
+
+            self._bus.publish(
+
+                Event(
+
+                    EventType.MATCH_REQUEST,
+
+                    {
+                        "session":
+                        session
+                    }
+
+                )
+
+            )
+
+
+        elif message.type.value == "game_state":
+
+            self._bus.publish(
+
+                Event(
+
+                    EventType.GAME_STATE_CHANGED,
+
+                    {
+                        "session":
+                        session
+                    }
+
+                )
+
+            )

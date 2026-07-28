@@ -1,31 +1,26 @@
-# אחראית רק על משחק אחד
-# באיזה Room המשחק נמצא.
-# מי השחקן הלבן.
-# מי השחקן השחור.
-# מי הצופים.
-# מהו ServerGame.
-# האם המשחק הסתיים.
-# להחזיר Snapshot.
-# להעביר מהלכים ל־ServerGame.
+from server.bus.event import Event
+from server.bus.event_type import EventType
 
 
 class GameSession:
     """
-    Represents one running multiplayer game.
+    Represents one active multiplayer match.
 
-    Responsible only for:
-    - storing game information
-    - forwarding moves
-    - exposing snapshots
-    - publishing game events
+    Responsible for:
+    - connecting room to server game
+    - providing game state
+    - finishing game
 
     Does not know:
     - networking
     - database
     - authentication
+    - game rules
     """
 
-    # Create a new game session.
+
+
+    # Initialize game session.
     def __init__(
         self,
         room,
@@ -33,188 +28,122 @@ class GameSession:
         bus
     ):
         """
-        Initialize one running game.
+        Store game objects.
         """
 
         self.room = room
+
         self.server_game = server_game
-        self.bus = bus
+
+        self._bus = bus
+
         self.finished = False
 
-# Execute one player move.
-def make_move(
-    self,
-    move
-):
-    """
-    Forward move to ServerGame.
-
-    Does not publish events.
-    GameManager handles events.
-    """
-
-    if self.finished:
-
-        return None
 
 
-    return self.server_game.make_move(
+    # Execute player move.
+    def make_move(
+        self,
         move
-    )
-
-    # Finish the current game.
-    def finish(self):
+    ):
         """
-        Mark game as finished.
+        Forward move
+        to ServerGame.
         """
 
-        self.finished = True
+        if self.finished:
+
+            return None
+
+
+        return self.server_game.make_move(
+            move
+        )
+
+
 
     # Return current game snapshot.
-    def get_snapshot(self):
+    def get_snapshot(
+        self
+    ):
         """
-        Return latest game snapshot.
+        Return current state
+        from game engine.
         """
+
+        if self.finished:
+
+            return None
+
 
         return self.server_game.get_snapshot()
 
-    # Return all players inside this game.
-    def get_players(self):
+
+
+    # Finish current game.
+    def finish(
+        self,
+        winner=None,
+        loser=None,
+        reason="unknown"
+    ):
         """
-        Return white and black sessions.
+        Mark game as finished
+        and notify services.
         """
 
-        return (
-            self.room.white_player,
-            self.room.black_player
+        if self.finished:
+
+            return
+
+
+        self.finished = True
+
+
+        self._bus.publish(
+
+            Event(
+
+                EventType.GAME_FINISHED,
+
+                {
+                    "room_id":
+                    self.room.room_id,
+
+                    "winner":
+                    winner,
+
+                    "loser":
+                    loser,
+
+                    "reason":
+                    reason
+                }
+
+            )
+
         )
 
-# from server.bus.event import Event
-# from server.bus.event_type import EventType
+
+
+    # Check if game finished.
+    def is_finished(
+        self
+    ):
+        """
+        Return game status.
+        """
+
+        return self.finished
 
 
 
-# class GameSession:
-#     """
-#     Represents one active game session.
+    # Return room.
+    def get_room(
+        self
+    ):
+        """
+        Return related room.
+        """
 
-#     Responsible for:
-#     - connecting players to a game
-#     - forwarding moves
-#     - storing game state
-
-#     Does not know:
-#     - networking
-#     - database
-#     - authentication
-#     """
-
-
-
-#     # Create new game session.
-#     def __init__(
-#         self,
-#         room,
-#         server_game,
-#         bus
-#     ):
-#         """
-#         Initialize game session.
-#         """
-
-#         self.room = room
-
-#         self.server_game = server_game
-
-#         self.bus = bus
-
-#         self.finished = False
-
-
-
-#     # Handle player move.
-#     def make_move(
-#         self,
-#         move,
-#         player=None
-#     ):
-#         """
-#         Forward move to game engine.
-#         """
-
-
-#         if self.finished:
-
-#             return None
-
-
-
-#         result = (
-#             self.server_game
-#             .make_move(move)
-#         )
-
-
-
-#         if result.success:
-
-#             self.bus.publish(
-
-#                 Event(
-
-#                     EventType.MOVE_ACCEPTED,
-
-#                     {
-#                         "room_id":
-#                         self.room.room_id,
-
-
-#                         "move":
-#                         move
-
-#                     }
-
-#                 )
-
-#             )
-
-#         else:
-
-#             self.bus.publish(
-
-#                 Event(
-
-#                     EventType.MOVE_REJECTED,
-
-#                     {
-#                         "move":
-#                         move
-#                     }
-
-#                 )
-
-#             )
-
-
-#         return result
-
-#     # Finish game.
-#     def finish(
-#         self
-#     ):
-#         """
-#         Mark game as finished.
-#         """
-
-#         self.finished = True
-
-#             # Return current game snapshot.
-#     def get_snapshot(
-#         self
-#     ):
-#         """
-#         Return current state
-#         of the running game.
-#         """
-
-#         return self.server_game.get_snapshot()
+        return self.room

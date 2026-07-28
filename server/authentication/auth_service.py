@@ -33,8 +33,8 @@ class AuthService:
     # Initialize authentication service.
     def __init__(
         self,
-        database,
-        bus
+        bus,
+        database
     ):
         """
         Initialize authentication service.
@@ -42,9 +42,9 @@ class AuthService:
         Saves database and bus references,
         then subscribes to authentication events.
         """
-
-        self.database = database
         self.bus = bus
+        self.database = database
+        
 
         self.register_events()
 

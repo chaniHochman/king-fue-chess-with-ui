@@ -1,11 +1,8 @@
-#  לפתוח שרת
-#  לקבל לקוח חדש
-#  ליצור ClientConnection
-#  להעביר הלאה
 import socket
 import threading
 
 from server.network.client_connection import ClientConnection
+
 from server.bus.event import Event
 from server.bus.event_type import EventType
 
@@ -13,48 +10,60 @@ from server.bus.event_type import EventType
 
 class TCPServer:
     """
-    Responsible only for:
-    - accepting TCP connections
-    - creating ClientConnection
-    - publishing client messages
+    Main TCP server.
 
-    It does not know:
-    - users
-    - rooms
+    Responsible for:
+    - accepting clients
+    - creating connections
+    - publishing network events
+
+    Does not know:
+    - authentication
     - games
+    - rooms
     """
 
 
+
+    # Initialize TCP server.
     def __init__(
         self,
-        host,
-        port,
+        bus,
         connection_manager,
-        bus
+        host="localhost",
+        port=5000
     ):
-
-        self._host = host
-        self._port = port
-
-        self._connection_manager = connection_manager
+        """
+        Store server settings.
+        """
 
         self._bus = bus
 
-        self._server_socket = None
+        self._connection_manager = connection_manager
+
+        self._host = host
+
+        self._port = port
 
         self._running = False
 
 
 
-    def start(self):
+    # Start server.
+    def start(
+        self
+    ):
+        """
+        Open socket and accept clients.
+        """
 
-        self._server_socket = socket.socket(
+        server_socket = socket.socket(
             socket.AF_INET,
             socket.SOCK_STREAM
         )
 
 
-        self._server_socket.bind(
+        server_socket.bind(
             (
                 self._host,
                 self._port
@@ -62,23 +71,22 @@ class TCPServer:
         )
 
 
-        self._server_socket.listen()
+        server_socket.listen()
+
 
         self._running = True
-
-
-        print("Server started")
 
 
         while self._running:
 
             client_socket, address = (
-                self._server_socket.accept()
+                server_socket.accept()
             )
 
 
             connection = ClientConnection(
-                client_socket
+                client_socket,
+                address
             )
 
 
@@ -87,28 +95,43 @@ class TCPServer:
             )
 
 
+            self._bus.publish(
+
+                Event(
+
+                    EventType.CLIENT_CONNECTED,
+
+                    {
+                        "connection":
+                        connection
+                    }
+
+                )
+
+            )
+
+
             thread = threading.Thread(
-                target=self._handle_client,
-                args=(connection,),
-                daemon=True
+
+                target=self.listen_client,
+
+                args=(connection,)
+
             )
 
 
             thread.start()
 
 
-    # Handle one client connection.
-    def _handle_client(
+
+    # Listen to client messages.
+    def listen_client(
         self,
         connection
     ):
         """
-        Receive messages from one client.
-
-        When client disconnects,
-        publish disconnect event.
+        Receive messages from client.
         """
-
 
         while connection.is_connected():
 
@@ -116,20 +139,6 @@ class TCPServer:
 
 
             if message is None:
-
-                self._bus.publish(
-
-                    Event(
-
-                        EventType.PLAYER_DISCONNECTED,
-
-                        {
-                            "connection": connection
-                        }
-
-                    )
-
-                )
 
                 break
 
@@ -141,9 +150,11 @@ class TCPServer:
                     EventType.CLIENT_MESSAGE,
 
                     {
-                        "connection": connection,
+                        "connection":
+                        connection,
 
-                        "message": message
+                        "message":
+                        message
                     }
 
                 )
@@ -151,37 +162,22 @@ class TCPServer:
             )
 
 
-
-        # Notify server about disconnect.
-        self._bus.publish(
-
-            Event(
-
-                EventType.PLAYER_DISCONNECTED,
-
-                {
-                    "connection": connection
-                }
-
-            )
-
-        )
-
-
         self._connection_manager.remove(
             connection
         )
 
 
-        connection.close()
+        self._bus.publish(
 
+            Event(
 
+                EventType.CLIENT_DISCONNECTED,
 
-    def stop(self):
+                {
+                    "connection":
+                    connection
+                }
 
-        self._running = False
+            )
 
-
-        if self._server_socket:
-
-            self._server_socket.close()
+        )

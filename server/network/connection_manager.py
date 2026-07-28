@@ -1,27 +1,40 @@
-#מנהל חיבורים
-# אחראי על:
-# TCP
-# Socket
-# Close
-# Receive
-# Send
 class ConnectionManager:
     """
     Manages all active client connections.
 
-    Does not know users or games.
+    Responsible for:
+    - storing connections
+    - adding clients
+    - removing clients
+
+    Does not know:
+    - users
+    - games
+    - authentication
     """
 
 
-    # Creates an empty connection list.
-    def __init__(self):
+
+    # Initialize connection manager.
+    def __init__(
+        self
+    ):
+        """
+        Create empty connection list.
+        """
 
         self._connections = []
 
 
 
-    # Adds a new client connection.
-    def add(self, connection):
+    # Add new connection.
+    def add(
+        self,
+        connection
+    ):
+        """
+        Store client connection.
+        """
 
         self._connections.append(
             connection
@@ -29,8 +42,14 @@ class ConnectionManager:
 
 
 
-    # Removes a client connection.
-    def remove(self, connection):
+    # Remove connection.
+    def remove(
+        self,
+        connection
+    ):
+        """
+        Remove client connection.
+        """
 
         if connection in self._connections:
 
@@ -40,15 +59,44 @@ class ConnectionManager:
 
 
 
-    # Returns all active connections.
-    def get_all(self):
+    # Return all connections.
+    def get_all(
+        self
+    ):
+        """
+        Return active connections.
+        """
 
-        return self._connections.copy()
+        return list(
+            self._connections
+        )
 
 
 
-    # Closes every connection.
-    def close_all(self):
+    # Send message to all clients.
+    def broadcast(
+        self,
+        message
+    ):
+        """
+        Send message to every client.
+        """
+
+        for connection in self._connections:
+
+            connection.send(
+                message
+            )
+
+
+
+    # Close all connections.
+    def close_all(
+        self
+    ):
+        """
+        Close server connections.
+        """
 
         for connection in self._connections:
 

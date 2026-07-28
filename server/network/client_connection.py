@@ -1,68 +1,134 @@
-# מחלקה זו אחראית אך ורק על התקשורת עם לקוח אחד.
-from server.messages import Message
+import socket
 
 
 class ClientConnection:
     """
-    Represents one client network connection.
+    Represents one client connection.
 
-    Responsible only for communication
-    with one client.
+    Responsible for:
+    - receiving messages
+    - sending messages
+    - closing connection
+
+    Does not know:
+    - authentication
+    - rooms
+    - games
+    - database
     """
 
 
-    # Creates a new client connection object.
-    def __init__(self, socket):
+
+    # Initialize client connection.
+    def __init__(
+        self,
+        socket,
+        address
+    ):
+        """
+        Store socket information.
+        """
 
         self._socket = socket
+
+        self.address = address
+
         self._connected = True
 
 
 
-    # Receives a message from the client.
-    def receive(self):
+    # Receive message from client.
+    def receive(
+        self
+    ):
+        """
+        Read data from socket.
+        """
 
         try:
 
-            data = self._socket.recv(4096)
-
-            if not data:
-                self._connected = False
-                return None
-
-
-            return Message.from_json(
-                data.decode()
+            data = self._socket.recv(
+                4096
             )
 
 
-        except Exception:
+            if not data:
+
+                self._connected = False
+
+                return None
+
+
+            return data.decode(
+                "utf-8"
+            )
+
+
+        except:
 
             self._connected = False
+
             return None
 
 
 
-    # Sends a message to the client.
-    def send(self, message):
+    # Send message to client.
+    def send(
+        self,
+        message
+    ):
+        """
+        Send text message.
+        """
 
         if not self._connected:
+
             return
 
-        self._socket.sendall(
-            message.to_json().encode()
-        )
 
-    # Checks whether client is connected.
-    def is_connected(self):
+        try:
+
+            self._socket.send(
+                message.encode(
+                    "utf-8"
+                )
+            )
+
+
+        except:
+
+            self._connected = False
+
+
+
+    # Check connection status.
+    def is_connected(
+        self
+    ):
+        """
+        Return connection state.
+        """
 
         return self._connected
 
 
 
-    # Closes the client connection.
-    def close(self):
+    # Close client connection.
+    def close(
+        self
+    ):
+        """
+        Close socket.
+        """
 
         self._connected = False
 
-        self._socket.close()
+
+        try:
+
+            self._socket.close()
+
+
+        except:
+
+            pass

@@ -4,38 +4,26 @@ from enum import Enum
 
 class MessageType(Enum):
     """
-    Defines all network messages.
+    Defines client-server commands.
+
+    Used for communication
+    between client and server.
     """
 
+    LOGIN = "login"
 
-    LOGIN = "LOGIN"
+    REGISTER = "register"
 
-    REGISTER = "REGISTER"
+    PLAY = "play"
 
+    CREATE_ROOM = "create_room"
 
-    PLAY = "PLAY"
+    JOIN_ROOM = "join_room"
 
+    LEAVE_ROOM = "leave_room"
 
-    CREATE_ROOM = "CREATE_ROOM"
+    MOVE = "move"
 
-    JOIN_ROOM = "JOIN_ROOM"
+    GAME_STATE = "game_state"
 
-    CANCEL_ROOM = "CANCEL_ROOM"
-
-
-    MOVE = "MOVE"
-
-
-    RECONNECT = "RECONNECT"
-
-
-    GAME_STATE = "GAME_STATE"
-
-    GAME_STARTED = "GAME_STARTED"
-
-    GAME_ENDED = "GAME_ENDED"
-
-
-    ERROR = "ERROR"
-
-    SCORE_UPDATE = "SCORE_UPDATE"
+    CHAT = "chat"

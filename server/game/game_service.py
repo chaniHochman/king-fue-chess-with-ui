@@ -24,7 +24,8 @@ class GameService:
         self,
         bus,
         game_manager,
-        room_manager
+        room_manager,
+        engine_factory
     ):
         """
         Store dependencies
@@ -36,6 +37,8 @@ class GameService:
         self._game_manager = game_manager
 
         self._room_manager = room_manager
+
+        self._engine_factory = engine_factory
 
         self.register_events()
 
@@ -60,7 +63,7 @@ class GameService:
 
 
         self._bus.subscribe(
-            EventType.SESSION_TIMEOUT,
+            EventType.PLAYER_TIMEOUT,
             self.handle_timeout
         )
 
