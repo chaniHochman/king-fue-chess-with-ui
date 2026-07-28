@@ -1,74 +1,118 @@
 #רושמת אירועים ללוג
 from datetime import datetime
+
 from server.bus.event_type import EventType
 
 
 class LoggerService:
     """
-    Logs important server events.
+    Stores server activity logs.
 
-    Responsible only for:
-    - receiving events
-    - writing log file
+    Responsible for:
+    - listening to server events
+    - creating logs
 
     Does not know:
-    - networking
-    - rooms
     - games
+    - authentication
+    - networking
     """
 
-    # Create logger service.
-    def __init__(self,bus):
 
-        self.bus=bus
-        self.file_name="logs/server.log"
+    # Initialize logger.
+    def __init__(
+        self,
+        bus
+    ):
+        """
+        Store bus and register events.
+        """
+
+        self._bus = bus
+
+        self._logs = []
 
         self.register_events()
 
-    # Subscribe to server events.
+
+
+    # Register events to log.
     def register_events(self):
         """
-        Register all events that should be logged.
+        Subscribe to important events.
         """
 
-        events=[
-            EventType.PLAYER_CONNECTED,
-            EventType.PLAYER_DISCONNECTED,
+        events = [
+
             EventType.LOGIN_SUCCESS,
+
             EventType.LOGIN_FAILED,
+
             EventType.ROOM_CREATED,
+
             EventType.PLAYER_JOINED_ROOM,
+
             EventType.PLAYER_LEFT_ROOM,
+
             EventType.GAME_STARTED,
+
             EventType.GAME_FINISHED,
+
             EventType.MOVE_ACCEPTED,
-            EventType.MOVE_REJECTED
+
+            EventType.MOVE_REJECTED,
+
+            EventType.PLAYER_TIMEOUT
+
         ]
 
+
         for event_type in events:
-            self.bus.subscribe(
+
+            self._bus.subscribe(
                 event_type,
-                self.write_log
+                self.log_event
             )
 
-    # Write one event into the log file.
-    def write_log(self,event):
+
+
+    # Store event log.
+    def log_event(
+        self,
+        event
+    ):
         """
-        Save one event into the server log.
+        Save event information.
         """
 
-        timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        log = {
 
-        text=(
-            f"{timestamp} | "
-            f"{event.type.value} | "
-            f"{event.data}\n"
+            "time":
+            datetime.now().isoformat(),
+
+            "event":
+            event.type.value,
+
+            "data":
+            event.data
+
+        }
+
+
+        self._logs.append(
+            log
         )
 
-        with open(
-            self.file_name,
-            "a",
-            encoding="utf-8"
-        ) as file:
 
-            file.write(text)
+
+    # Return logs.
+    def get_logs(
+        self
+    ):
+        """
+        Return all logs.
+        """
+
+        return list(
+            self._logs
+        )

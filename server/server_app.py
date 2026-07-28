@@ -20,12 +20,18 @@ from server.services.animation_service import AnimationService
 
 from server.network.connection_manager import ConnectionManager
 from server.network.tcp_server import TCPServer
-
+from server.game.game_service import GameService
 from server.commands.client_command_handler import ClientCommandHandler
 from server.session.session_disconnect_service import SessionDisconnectService
 from server.bus.event_type import EventType
 from server.session.reconnect_service import ReconnectService
 from server.session.session_disconnect_service import SessionDisconnectService
+
+from server.game.game_disconnect_service import GameDisconnectService
+from server.session.disconnect_monitor import DisconnectMonitor
+from server.game.game_factory import GameFactory
+from server.game.game_engin_factory import GameEngineFactory
+
 class ServerApp:
     """
     Main server composition root.
@@ -57,6 +63,11 @@ class ServerApp:
 
         # Database storage layer.
         self.database = Database()
+
+        self.game_engine_factory = GameEngineFactory(
+            score_data,
+            moves_log
+        )
 
 
         # Network connection storage.
@@ -117,11 +128,35 @@ class ServerApp:
 
 
         # Active games manager.
-        self.game_manager = GameManager(
+        self.game_factory = GameFactory(
             self.bus
         )
 
 
+        self.game_manager = GameManager(
+            self.bus,
+            self.game_factory
+        )
+
+        #disconnect service for games.
+        self.game_disconnect_service = GameDisconnectService(
+            self.bus,
+            self.game_manager
+        )
+
+
+        self.disconnect_monitor = DisconnectMonitor(
+            self.bus,
+            self.session_manager
+        )
+
+
+        self.game_service = GameService(
+            self.bus,
+            self.game_manager,
+            self.room_manager,
+            self.game_engine_factory
+        )
 
         # Server services.
         self.logger_service = LoggerService(
@@ -172,8 +207,10 @@ class ServerApp:
     # Start server.
     def start(self):
         """
-        Start TCP server.
+        Start server.
         """
+
+        self.disconnect_monitor.start()
 
         self.server.start()
 
@@ -184,6 +221,7 @@ class ServerApp:
         """
         Shutdown server safely.
         """
+        self.disconnect_monitor.stop()
 
         self.server.stop()
 

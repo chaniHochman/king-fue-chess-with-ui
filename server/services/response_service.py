@@ -1,23 +1,21 @@
 from server.messages import Message
-
 from server.common.message_type import MessageType
-
+from server.bus.event_type import EventType
 
 
 class ResponseService:
     """
-    Sends server responses to clients.
+    Sends server events
+    back to clients.
 
-    Responsible only for:
-    - converting events into messages
+    Responsible for:
+    - converting events to messages
     - sending messages
 
     Does not know:
-    - authentication logic
-    - rooms
-    - games
+    - game rules
+    - database
     """
-
 
 
     # Initialize response service.
@@ -26,11 +24,10 @@ class ResponseService:
         bus
     ):
         """
-        Store message bus
-        and register listeners.
+        Store bus.
         """
 
-        self.bus = bus
+        self._bus = bus
 
         self.register_events()
 
@@ -39,50 +36,59 @@ class ResponseService:
     # Register response events.
     def register_events(self):
         """
-        Subscribe to events
-        that require client response.
+        Subscribe to outgoing events.
         """
 
-
-        from server.bus.event_type import EventType
-
-
-        self.bus.subscribe(
+        self._bus.subscribe(
             EventType.LOGIN_SUCCESS,
-            self.login_success
+            self.send_login_success
         )
 
 
-        self.bus.subscribe(
+        self._bus.subscribe(
             EventType.LOGIN_FAILED,
-            self.login_failed
+            self.send_error
         )
 
 
-        self.bus.subscribe(
-            EventType.ROOM_CREATED,
-            self.room_created
-        )
-
-
-        self.bus.subscribe(
-            EventType.ROOM_JOIN_FAILED,
-            self.room_join_failed
-        )
-        self.bus.subscribe(
+        self._bus.subscribe(
             EventType.GAME_STARTED,
-            self.game_started
+            self.send_game_started
+        )
+
+
+        self._bus.subscribe(
+            EventType.GAME_STATE_CHANGED,
+            self.send_game_state
+        )
+
+
+        self._bus.subscribe(
+            EventType.MOVE_ACCEPTED,
+            self.send_move_result
+        )
+
+
+        self._bus.subscribe(
+            EventType.MOVE_REJECTED,
+            self.send_move_result
+        )
+
+
+        self._bus.subscribe(
+            EventType.GAME_FINISHED,
+            self.send_game_finished
         )
 
 
 
-    # Send login success message.
-    def login_success(
+    # Send login success.
+    def send_login_success(
         self,
         event
     ):
         """
-        Notify client about successful login.
+        Notify successful login.
         """
 
         connection = event.data["connection"]
@@ -90,20 +96,23 @@ class ResponseService:
 
         connection.send(
             Message(
-                MessageType.LOGIN_SUCCESS,
-                {}
+                MessageType.LOGIN,
+                {
+                    "success":
+                    True
+                }
             )
         )
 
 
 
-    # Send login failed message.
-    def login_failed(
+    # Send error.
+    def send_error(
         self,
         event
     ):
         """
-        Notify client about failed login.
+        Send error message.
         """
 
         connection = event.data["connection"]
@@ -121,114 +130,27 @@ class ResponseService:
 
 
 
-    # Send created room id.
-    def room_created(
-        self,
-        event
-    ):
-        """
-        Send new room id
-        to creator.
-        """
-
-        connection = event.data["connection"]
-
-
-        connection.send(
-            Message(
-                MessageType.CREATE_ROOM,
-                {
-                    "room_id":
-                    event.data["room_id"]
-                }
-            )
-        )
-
-
-
-    # Send join failed response.
-    def room_join_failed(
-        self,
-        event
-    ):
-        """
-        Notify client that room was not found.
-        """
-
-        connection = event.data["connection"]
-
-
-        connection.send(
-            Message(
-                MessageType.ERROR,
-                {
-                    "reason":
-                    event.data["reason"]
-                }
-            )
-        )
-        # Send game start message.
-    def game_started(
-        self,
-        event
-    ):
-        """
-        Notify players that game started.
-        """
-
-
-        white = event.data["white"]
-
-        black = event.data["black"]
-
-
-        room_id = event.data["room_id"]
-
-
-        players = [
-            event.data["white"],
-            event.data["black"]
-        ]
-
-
-        message = Message(
-            MessageType.GAME_STARTED,
-            {
-                "room_id": room_id,
-
-                "white": white,
-
-                "black": black
-            }
-        )
-        
-        # Send game start message.
+    # Send game started.
     def send_game_started(
         self,
         event
     ):
         """
-        Notify both players
-        that game started.
+        Notify players game started.
         """
 
-
         message = Message(
-
             MessageType.GAME_STARTED,
-
             {
                 "room_id":
                 event.data["room_id"]
             }
-
         )
 
 
         white = event.data["white"]
 
         black = event.data["black"]
-
 
 
         white.connected.send(
@@ -239,3 +161,69 @@ class ResponseService:
         black.connected.send(
             message
         )
+
+
+
+    # Send game snapshot.
+    def send_game_state(
+        self,
+        event
+    ):
+        """
+        Send current board state.
+        """
+
+        room_id = event.data["room_id"]
+
+        snapshot = event.data["snapshot"]
+
+
+        message = Message(
+            MessageType.GAME_STATE,
+            {
+                "room_id":
+                room_id,
+
+                "snapshot":
+                snapshot
+            }
+        )
+
+
+        players = event.data.get(
+            "players",
+            []
+        )
+
+
+        for player in players:
+
+            player.connected.send(
+                message
+            )
+
+
+
+    # Send move result.
+    def send_move_result(
+        self,
+        event
+    ):
+        """
+        Notify about move result.
+        """
+
+        pass
+
+
+
+    # Send game finished.
+    def send_game_finished(
+        self,
+        event
+    ):
+        """
+        Notify game ended.
+        """
+
+        pass

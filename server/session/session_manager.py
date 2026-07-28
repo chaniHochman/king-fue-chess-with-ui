@@ -164,3 +164,13 @@ class SessionManager:
 
 
         return session
+
+    def has_session(
+        self,
+        username
+    ):
+        """
+        Return True if a session already exists.
+        """
+
+        return username in self.sessions

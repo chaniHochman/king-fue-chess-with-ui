@@ -86,6 +86,8 @@ class EventType(Enum):
 
     GAME_STATE_CHANGED = "game_state_changed"
 
+    SESSION_TIMEOUT="session_timeout"
+
 
 
     # Move events
@@ -127,6 +129,5 @@ class EventType(Enum):
     SERVER_LOG = "server_log"
 
 
-    SESSION_CREATED = "session_created"
 
     RECONNECT_REQUEST = "reconnect_request"

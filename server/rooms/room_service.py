@@ -190,22 +190,15 @@ class RoomService:
                 room_id
             )
 
-
             self._bus.publish(
 
                 Event(
 
-                    EventType.GAME_STARTED,
+                    EventType.GAME_CREATED,
 
                     {
                         "room_id":
-                        room_id,
-
-                        "white":
-                        room.white_player,
-
-                        "black":
-                        room.black_player
+                        room_id
                     }
 
                 )

@@ -5,63 +5,65 @@ from server.bus.event_type import EventType
 
 class AnimationService:
     """
-    Publishes animation events.
+    Handles animation events.
 
-    The service does not know the UI.
+    Responsible for:
+    - receiving animation requests
+    - publishing animation events
 
-    It only tells the client which animation should be played.
+    Does not know:
+    - UI
+    - rendering
+    - networking
     """
 
-    # Create animation service.
-    def __init__(self, bus):
 
-        self.bus = bus
+    # Initialize animation service.
+    def __init__(
+        self,
+        bus
+    ):
+        """
+        Store bus.
+        """
+
+        self._bus = bus
 
         self.register_events()
 
-    # Subscribe to game events.
+
+
+    # Register animation events.
     def register_events(self):
+        """
+        Subscribe to game animation triggers.
+        """
 
-        self.bus.subscribe(
-            EventType.GAME_STARTED,
-            self.start_animation
+        self._bus.subscribe(
+            EventType.MOVE_ACCEPTED,
+            self.handle_move_animation
         )
 
-        self.bus.subscribe(
-            EventType.GAME_FINISHED,
-            self.end_animation
-        )
 
-    # Publish start animation.
-    def start_animation(self, event):
 
-        self.bus.publish(
+    # Create move animation event.
+    def handle_move_animation(
+        self,
+        event
+    ):
+        """
+        Publish animation request.
+        """
 
+        self._bus.publish(
             Event(
-
                 EventType.PLAY_ANIMATION,
-
                 {
-                    "animation": "game_start"
+                    "animation":
+                    "piece_move",
+
+                    "move":
+                    event.data["move"]
                 }
-
             )
-
-        )
-
-    # Publish end animation.
-    def end_animation(self, event):
-
-        self.bus.publish(
-
-            Event(
-
-                EventType.PLAY_ANIMATION,
-
-                {
-                    "animation": "victory"
-                }
-
-            )
-
         )
