@@ -45,10 +45,10 @@ class SessionResolver:
             self.resolve_create_room
         )
 
-        self._bus.subscribe(
-            EventType.JOIN_ROOM_REQUEST,
-            self.join_room
-        )
+        # self._bus.subscribe(
+        #     EventType.JOIN_ROOM_REQUEST,
+        #     self.join_room
+        # )
 
         self._bus.subscribe(
             EventType.MOVE_REQUESTED,
@@ -167,5 +167,21 @@ class SessionResolver:
         """
 
         return self._session_manager.get_by_connection(
+            connection
+        )
+        # Get session by connection.
+    def get_session(
+        self,
+        connection
+    ):
+        """
+        Return session that belongs
+        to a client connection.
+
+        Compatibility wrapper for
+        command handlers.
+        """
+
+        return self.find_session(
             connection
         )

@@ -58,6 +58,10 @@ class RoomService:
             EventType.JOIN_ROOM_REQUEST,
             self.join_room
         )
+        self._bus.subscribe(
+            EventType.MATCH_FOUND,
+            self.create_match_room
+        )
 
 
 
@@ -77,7 +81,8 @@ class RoomService:
         session = event.data.get(
             "session"
         )
-
+        if session is None:
+            return
 
         room = self._room_manager.create_room()
 
@@ -204,3 +209,47 @@ class RoomService:
                 )
 
             )
+    def create_match_room(
+        self,
+        event
+    ):
+        """
+        Create room automatically
+        after matchmaking.
+        """
+
+
+        player1 = event.data["player1"]
+
+        player2 = event.data["player2"]
+
+
+        room = self._room_manager.create_room()
+
+
+        self._room_manager.join_room(
+            room.room_id,
+            player1
+        )
+
+
+        self._room_manager.join_room(
+            room.room_id,
+            player2
+        )
+
+
+        self._bus.publish(
+
+            Event(
+
+                EventType.GAME_CREATED,
+
+                {
+                    "room_id":
+                    room.room_id
+                }
+
+            )
+
+        )

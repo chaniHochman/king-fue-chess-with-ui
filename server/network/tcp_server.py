@@ -1,10 +1,12 @@
 import socket
 import threading
 
+
 from server.network.client_connection import ClientConnection
 
 from server.bus.event import Event
 from server.bus.event_type import EventType
+import json
 
 
 
@@ -14,13 +16,13 @@ class TCPServer:
 
     Responsible for:
     - accepting clients
-    - creating connections
+    - receiving messages
     - publishing network events
 
     Does not know:
-    - authentication
-    - games
+    - users
     - rooms
+    - games
     """
 
 
@@ -34,7 +36,7 @@ class TCPServer:
         port=5000
     ):
         """
-        Store server settings.
+        Store server dependencies.
         """
 
         self._bus = bus
@@ -57,6 +59,7 @@ class TCPServer:
         Open socket and accept clients.
         """
 
+
         server_socket = socket.socket(
             socket.AF_INET,
             socket.SOCK_STREAM
@@ -74,14 +77,21 @@ class TCPServer:
         server_socket.listen()
 
 
+
         self._running = True
+
+
+        print(
+            f"Server started on {self._host}:{self._port}"
+        )
+
 
 
         while self._running:
 
-            client_socket, address = (
-                server_socket.accept()
-            )
+
+            client_socket, address = server_socket.accept()
+
 
 
             connection = ClientConnection(
@@ -118,13 +128,15 @@ class TCPServer:
                 args=(connection,)
 
             )
+            
 
 
             thread.start()
 
 
 
-    # Listen to client messages.
+
+    # Listen to one client.
     def listen_client(
         self,
         connection
@@ -133,14 +145,48 @@ class TCPServer:
         Receive messages from client.
         """
 
+
         while connection.is_connected():
 
+
             message = connection.receive()
+
 
 
             if message is None:
 
                 break
+
+
+
+            # self._bus.publish(
+
+            #     Event(
+
+            #         EventType.CLIENT_MESSAGE,
+
+            #         {
+            #             "connection":
+            #             connection,
+
+            #             "message":
+            #             message
+            #         }
+
+            #     )
+
+            # )
+            try:
+
+                message_data = json.loads(
+                    message
+                )
+
+
+            except Exception:
+
+                continue
+
 
 
             self._bus.publish(
@@ -154,7 +200,7 @@ class TCPServer:
                         connection,
 
                         "message":
-                        message
+                        message_data
                     }
 
                 )
@@ -162,9 +208,11 @@ class TCPServer:
             )
 
 
+
         self._connection_manager.remove(
             connection
         )
+
 
 
         self._bus.publish(

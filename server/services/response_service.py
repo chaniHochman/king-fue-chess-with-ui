@@ -120,7 +120,7 @@ class ResponseService:
             Message(
                 MessageType.LOGIN_SUCCESS,
                 {}
-            )
+            ).encode()
         )
 
 
@@ -143,7 +143,7 @@ class ResponseService:
                     "reason":
                     event.data.get("reason")
                 }
-            )
+            ).encode()
         )
 
 
@@ -161,12 +161,12 @@ class ResponseService:
 
         connection.send(
             Message(
-                MessageType.CREATE_ROOM,
+                MessageType.ROOM_CREATED,
                 {
                     "room_id":
                     event.data["room_id"]
                 }
-            )
+            ).encode()
         )
 
 
@@ -189,7 +189,7 @@ class ResponseService:
                     "reason":
                     event.data.get("reason")
                 }
-            )
+            ).encode()
         )
 
 
@@ -276,7 +276,7 @@ class ResponseService:
                     "reason":
                     "invalid_move"
                 }
-            )
+            ).encode()
         )
 
 

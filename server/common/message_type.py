@@ -1,6 +1,4 @@
-#מחזיקה את כל סוגי ההודעות האפשריים.
 from enum import Enum
-
 
 class MessageType(Enum):
     """
@@ -10,11 +8,14 @@ class MessageType(Enum):
     between client and server.
     """
 
+
     LOGIN = "login"
 
     REGISTER = "register"
 
     PLAY = "play"
+
+    MATCH = "match"
 
     CREATE_ROOM = "create_room"
 

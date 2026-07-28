@@ -147,11 +147,12 @@ class ClientCommandHandler:
 
                 Event(
 
-                    EventType.CREATE_ROOM_REQUEST,
+                    # EventType.CREATE_ROOM_REQUEST,
 
                     {
-                        "session":
-                        session
+                        "session":session,
+                        "connection": connection
+
                     }
 
                 )
@@ -219,7 +220,7 @@ class ClientCommandHandler:
             )
 
 
-        elif message.type.value == "match":
+        elif message.type.value == "play":
 
             self._bus.publish(
 
@@ -228,8 +229,9 @@ class ClientCommandHandler:
                     EventType.MATCH_REQUEST,
 
                     {
-                        "session":
-                        session
+                        "session": session,
+
+                        "rating": session.user.rating
                     }
 
                 )
@@ -253,3 +255,18 @@ class ClientCommandHandler:
                 )
 
             )
+                # Handle message directly.
+    def handle(
+        self,
+        event
+    ):
+        """
+        Compatibility method.
+
+        Called by ClientMessageService.
+        Redirects handling to handle_message.
+        """
+
+        self.handle_message(
+            event
+        )

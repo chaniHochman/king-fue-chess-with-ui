@@ -63,7 +63,7 @@ class MatchmakingService:
             event.data["session"],
 
             "rating":
-            event.data["rating"]
+            event.data["rating"].user.rating
         }
 
 

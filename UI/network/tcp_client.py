@@ -1,157 +1,315 @@
-#  להתחבר לשרת.
-# לשלוח הודעות.
-#  לקבל הודעות.
-
 import json
 import socket
+import threading
+
 
 
 class TCPClient:
     """
-    Manages the TCP connection
-    between the client and the server.
+    Client side TCP communication.
+
+    Responsible for:
+    - connecting to server
+    - sending commands
+    - receiving server messages
+
+    Does not know:
+    - game logic
+    - UI rendering
+    - rooms
+    - authentication logic
     """
 
-    # Create client socket.
-    def __init__(self):
 
-        self.socket = socket.socket(
+
+    # Initialize TCP client.
+    def __init__(self, host="localhost", port=5000):
+
+        self._socket = socket.socket(
             socket.AF_INET,
             socket.SOCK_STREAM
         )
 
-        self.host = "localhost"
-        self.port = 5000
+        self._host = host
+        self._port = port
 
-    # Connect to the game server.
-    def connect(self):
-        #create a socket and connect to the server
-        self.socket.connect(
+        self._connected = False
+
+        self.last_message = None
+
+
+
+    # Connect to server.
+    def connect(
+        self
+    ):
+        """
+        Open TCP connection
+        and start receiver thread.
+        """
+
+        self._socket.connect(
             (
-                self.host,
-                self.port
+                self._host,
+                self._port
             )
         )
 
-    # Send a raw message to the server.
-    def send_message(self, message):
 
-        self.socket.send(
-            message.encode()
+        self._connected = True
+
+
+        self.start_listener()
+
+
+
+    # Start background listener.
+    def start_listener(
+        self
+    ):
+        """
+        Start thread that receives
+        messages from server.
+        """
+
+        self._listener_thread = threading.Thread(
+            target=self.receive_messages,
+            daemon=True
         )
 
-    # Send a login request.
+
+        self._listener_thread.start()
+
+
+
+    # Send command to server.
+    def send_command(
+        self,
+        command_type,
+        data=None
+    ):
+        """
+        Send JSON message.
+        """
+
+        if not self._connected:
+
+            return
+
+
+        if data is None:
+
+            data = {}
+
+
+
+        message = {
+
+            "type":
+            command_type,
+
+            "data":
+            data
+        }
+
+
+
+        encoded = json.dumps(
+            message
+        )
+
+
+        self._socket.send(
+            encoded.encode("utf-8")
+        )
+
+
+
+    # Login request.
     def login(
         self,
         username,
         password
     ):
+        """
+        Send login request.
+        """
 
-        message = {
-            "type": "LOGIN",
-            "payload": {
+        self.send_command(
+            "login",
+            {
                 "username": username,
                 "password": password
             }
-        }
-
-        self.send_message(
-            json.dumps(message)
         )
 
-    # Send a register request.
+
+
+    # Register request.
     def register(
         self,
         username,
         password
     ):
+        """
+        Send register request.
+        """
 
-        message = {
-            "type": "REGISTER",
-            "payload": {
+        self.send_command(
+            "register",
+            {
                 "username": username,
                 "password": password
             }
-        }
-
-        self.send_message(
-            json.dumps(message)
         )
 
-    # Send a play request.
-    def play(self):
 
-        message = {
-            "type": "PLAY",
-            "payload": {}
-        }
 
-        self.send_message(
-            json.dumps(message)
+    # Search opponent.
+    def play(
+        self
+    ):
+        """
+        Send matchmaking request.
+        """
+
+        self.send_command(
+            "match"
         )
 
-    # Send a create room request.
-    def create_room(self):
 
-        message = {
-            "type": "CREATE_ROOM",
-            "payload": {}
-        }
 
-        self.send_message(
-            json.dumps(message)
+    # Create room.
+    def create_room(
+        self
+    ):
+        """
+        Create new room.
+        """
+
+        self.send_command(
+            "create_room"
         )
 
-    # Send a join room request.
+
+
+    # Join room.
     def join_room(
         self,
         room_id
     ):
+        """
+        Join existing room.
+        """
 
-        message = {
-            "type": "JOIN_ROOM",
-            "payload": {
+        self.send_command(
+            "join_room",
+            {
                 "room_id": room_id
             }
-        }
-
-        self.send_message(
-            json.dumps(message)
         )
 
-    # Send a move request.
+
+
+    # Leave room.
+    def leave_room(
+        self
+    ):
+        """
+        Leave current room.
+        """
+
+        self.send_command(
+            "leave_room"
+        )
+
+
+
+    # Send move.
     def send_move(
         self,
         move
     ):
+        """
+        Send player move.
+        """
 
-        message = {
-            "type": "MOVE",
-            "payload": {
+        self.send_command(
+            "move",
+            {
                 "move": move
             }
-        }
-
-        self.send_message(
-            json.dumps(message)
         )
 
-    # Listen for messages from the server.
-    def receive_messages(self):
 
-        while True:
 
-            data = self.socket.recv(1024)
+    # Receive server messages.
+    def receive_messages(
+        self
+    ):
+        """
+        Listen for server responses.
+        """
 
-            if not data:
+        while self._connected:
+
+
+            try:
+
+                data = self._socket.recv(
+                    4096
+                )
+
+
+                if not data:
+
+                    break
+
+
+                message = json.loads(
+                    data.decode("utf-8")
+                )
+                
+                self.last_message = message
+
+
+                print(
+                    "SERVER:",
+                    message
+                )
+
+
+            except Exception as error:
+
+                print(
+                    "Receive error:",
+                    error
+                )
+
                 break
 
-            print(
-                "SERVER:",
-                data.decode()
-            )
 
-    # Close the connection.
-    def disconnect(self):
 
-        self.socket.close()
+        self._connected = False
+
+
+
+    # Close connection.
+    def disconnect(
+        self
+    ):
+        """
+        Close TCP connection.
+        """
+
+        self._connected = False
+
+
+        try:
+
+            self._socket.close()
+
+
+        except:
+
+            pass

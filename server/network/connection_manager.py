@@ -1,21 +1,21 @@
 class ConnectionManager:
     """
-    Manages all active client connections.
+    Stores active client connections.
 
     Responsible for:
-    - storing connections
-    - adding clients
-    - removing clients
+    - adding connections
+    - removing connections
+    - finding connections
 
     Does not know:
-    - users
-    - games
     - authentication
+    - rooms
+    - games
     """
 
 
 
-    # Initialize connection manager.
+    # Initialize connection storage.
     def __init__(
         self
     ):
@@ -73,29 +73,12 @@ class ConnectionManager:
 
 
 
-    # Send message to all clients.
-    def broadcast(
-        self,
-        message
-    ):
-        """
-        Send message to every client.
-        """
-
-        for connection in self._connections:
-
-            connection.send(
-                message
-            )
-
-
-
     # Close all connections.
     def close_all(
         self
     ):
         """
-        Close server connections.
+        Close every client socket.
         """
 
         for connection in self._connections:

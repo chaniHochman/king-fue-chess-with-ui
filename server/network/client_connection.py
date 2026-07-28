@@ -78,15 +78,23 @@ class ClientConnection:
         message
     ):
         """
-        Send text message.
+        Send message object or text.
         """
 
         if not self._connected:
-
             return
 
 
         try:
+
+            if hasattr(message, "to_dict"):
+
+                import json
+
+                message = json.dumps(
+                    message.to_dict()
+                )
+
 
             self._socket.send(
                 message.encode(
@@ -95,10 +103,9 @@ class ClientConnection:
             )
 
 
-        except:
+        except Exception:
 
             self._connected = False
-
 
 
     # Check connection status.

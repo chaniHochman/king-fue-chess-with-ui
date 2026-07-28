@@ -4,7 +4,7 @@
 # Server
 # מייצגת הודעה אחידה בין הלקוח לשרת (סוג הודעה + נתונים).
 from server.common.message_type import MessageType
-
+import json
 
 class Message:
     """
@@ -81,4 +81,14 @@ class Message:
                 {}
             )
 
+        )
+    # Convert message into JSON string.
+    def encode(self):
+        """
+        Convert message object
+        into network format.
+        """
+
+        return json.dumps(
+            self.to_dict()
         )

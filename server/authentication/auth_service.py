@@ -137,7 +137,7 @@ class AuthService:
 
             self.bus.publish(
                 Event(
-                    EventType.LOGIN_FAILED,
+                    EventType.REGISTER_FAILED,
                     {
                         "connection": connection,
                         "reason": "username_exists"
@@ -163,7 +163,7 @@ class AuthService:
         )
         self.bus.publish(
             Event(
-                EventType.LOGIN_SUCCESS,
+                EventType.REGISTER_SUCCESS,
                 {
                     "connection": connection,
                     "user": new_user

@@ -1,55 +1,107 @@
 from UI.network.tcp_client import TCPClient
-import threading
 
 
-client = TCPClient()
+def main():
 
-client.connect()
+    client = TCPClient()
 
-listener = threading.Thread(
-    target=client.receive_messages,
-    daemon=True
-)
-
-listener.start()
+    client.connect()
 
 
-username = input("Username: ")
+    username = input("Username: ")
 
-password = input("Password: ")
-
-
-client.login(
-    username,
-    password
-)
+    password = input("Password: ")
 
 
-while True:
+    client.login(
+        username,
+        password
+    )
 
-    print()
 
-    print("1. Play")
-    print("2. Create Room")
-    print("3. Join Room")
-    print("4. Exit")
+    while True:
 
-    choice = input("Choose: ")
+        print()
 
-    if choice == "1":
+        print("1. Play")
+        print("2. Create Room")
+        print("3. Join Room")
+        print("4. Exit")
 
-        client.play()
 
-    elif choice == "2":
+        choice = input(
+            "Choose: "
+        )
 
-        client.create_room()
 
-    elif choice == "3":
+        if choice == "1":
 
-        room = input("Room ID: ")
+            print(
+                "Searching for opponent..."
+            )
 
-        client.join_room(room)
+            client.play()
 
-    elif choice == "4":
+            input(
+                    "Waiting for server response..."
+                )
 
-        break
+
+        elif choice == "2":
+
+            print(
+                "Creating room..."
+            )
+
+            client.create_room()
+
+            input(
+                    "Waiting for room creation..."
+                )
+
+
+        elif choice == "3":
+
+            room_id = input(
+                "Room ID: "
+            )
+
+
+            print(
+                "Joining room:",
+                room_id
+            )
+
+
+            client.join_room(
+                room_id
+            )
+            input(
+                "Waiting for join result..."
+            )
+
+
+
+        elif choice == "4":
+
+            print(
+                "Closing client..."
+            )
+
+            client.disconnect()
+
+            break
+
+
+
+        else:
+
+            print(
+                "Invalid choice"
+            )
+
+
+
+if __name__ == "__main__":
+
+    main()

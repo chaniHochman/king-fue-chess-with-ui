@@ -2,38 +2,31 @@ from server.bus.event import Event
 from server.bus.event_type import EventType
 
 
-
 class SessionManager:
     """
-    Manages connected user sessions.
+    Stores all active user sessions.
 
     Responsible for:
     - creating sessions
-    - storing sessions
     - removing sessions
-    - tracking disconnects
+    - finding sessions
 
     Does not know:
-    - authentication logic
+    - authentication
     - rooms
     - games
-    - database
     """
 
 
-
-    # Initialize session manager.
+    # Initialize session storage.
     def __init__(
-        self,
-        bus=None
+        self
     ):
         """
-        Store sessions.
+        Create empty session collection.
         """
 
-        self._bus = bus
-
-        self._sessions = []
+        self._sessions = {}
 
 
 
@@ -41,10 +34,10 @@ class SessionManager:
     def create_session(
         self,
         connection,
-        user=None
+        user
     ):
         """
-        Create and store session.
+        Create session after successful login.
         """
 
         from server.session.session import Session
@@ -56,27 +49,26 @@ class SessionManager:
         )
 
 
-        self._sessions.append(
-            session
+        self._sessions[connection] = session
+
+
+        return session
+
+
+
+    # Remove session.
+    def remove_session(
+        self,
+        connection
+    ):
+        """
+        Delete disconnected session.
+        """
+
+        session = self._sessions.pop(
+            connection,
+            None
         )
-
-
-        if self._bus:
-
-            self._bus.publish(
-
-                Event(
-
-                    EventType.SESSION_CREATED,
-
-                    {
-                        "session":
-                        session
-                    }
-
-                )
-
-            )
 
 
         return session
@@ -84,74 +76,18 @@ class SessionManager:
 
 
     # Find session by connection.
-    def get_by_connection(
+    def get_session(
         self,
         connection
     ):
         """
-        Return session
-        attached to connection.
+        Return session belonging
+        to connection.
         """
 
-        for session in self._sessions:
-
-            if session.connection == connection:
-
-                return session
-
-
-        return None
-
-
-
-    # Remove session.
-    def remove_session(
-        self,
-        session
-    ):
-        """
-        Remove session.
-        """
-
-        if session in self._sessions:
-
-            self._sessions.remove(
-                session
-            )
-
-
-            if self._bus:
-
-                self._bus.publish(
-
-                    Event(
-
-                        EventType.SESSION_REMOVED,
-
-                        {
-                            "session":
-                            session
-                        }
-
-                    )
-
-                )
-
-
-
-    # Mark session disconnected.
-    def disconnect(
-        self,
-        session
-    ):
-        """
-        Mark player as disconnected.
-
-        DisconnectMonitor will
-        handle timeout.
-        """
-
-        session.connected = False
+        return self._sessions.get(
+            connection
+        )
 
 
 
@@ -160,31 +96,9 @@ class SessionManager:
         self
     ):
         """
-        Return sessions list.
+        Return active sessions.
         """
 
         return list(
-            self._sessions
+            self._sessions.values()
         )
-
-
-
-    # Find session by username.
-    def get_by_username(
-        self,
-        username
-    ):
-        """
-        Return user's session.
-        """
-
-        for session in self._sessions:
-
-            if session.user:
-
-                if session.user.username == username:
-
-                    return session
-
-
-        return None
