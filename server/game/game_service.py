@@ -1,22 +1,24 @@
 from server.bus.event import Event
 from server.bus.event_type import EventType
+import uuid
+
 
 
 class GameService:
     """
-    Handles game lifecycle.
+    Handles game related events.
 
     Responsible for:
-    - starting games
-    - forwarding moves
-    - handling timeout
+    - creating games
+    - receiving move requests
+    - connecting rooms and games
 
     Does not know:
-    - networking
-    - database
+    - game rules
     - authentication
-    - game engine creation
+    - network
     """
+
 
 
     # Initialize game service.
@@ -25,11 +27,10 @@ class GameService:
         bus,
         game_manager,
         room_manager,
-        engine_factory
+        game_engine_factory=None
     ):
         """
-        Store dependencies
-        and register listeners.
+        Store dependencies.
         """
 
         self._bus = bus
@@ -38,47 +39,66 @@ class GameService:
 
         self._room_manager = room_manager
 
-        self._engine_factory = engine_factory
+        self._game_engine_factory = game_engine_factory
+
+
 
         self.register_events()
 
 
 
-    # Register game events.
-    def register_events(self):
+    # Register listeners.
+    def register_events(
+        self
+    ):
         """
         Subscribe to game events.
         """
 
+
         self._bus.subscribe(
-            EventType.GAME_CREATED,
+
+            EventType.START_GAME,
+
             self.start_game
+
         )
 
 
         self._bus.subscribe(
+
             EventType.MOVE_REQUESTED,
+
             self.handle_move
-        )
 
-
-        self._bus.subscribe(
-            EventType.PLAYER_TIMEOUT,
-            self.handle_timeout
         )
 
 
 
-    # Create game after room is ready.
+    # Start new game.
     def start_game(
         self,
         event
     ):
         """
-        Create new game session.
+        Create game for room.
         """
 
+
         room_id = event.data["room_id"]
+
+
+
+        game_id = str(
+            uuid.uuid4()
+        )
+
+
+
+        game = self._game_manager.create_game(
+            game_id
+        )
+
 
 
         room = self._room_manager.get_room(
@@ -86,121 +106,55 @@ class GameService:
         )
 
 
-        if room is None:
-            return
+        if room:
+
+            room.game_id = game_id
 
 
-        game = self._game_manager.create_game(
-            room
+
+        self._bus.publish(
+
+            Event(
+
+                EventType.GAME_STARTED,
+
+                {
+                    "game_id": game_id,
+
+                    "room_id": room_id
+
+                }
+
+            )
+
         )
 
 
-        return game
 
-
-
-    # Handle player move.
+    # Handle move request.
     def handle_move(
         self,
         event
     ):
         """
-        Forward move to GameManager.
+        Forward move to game manager.
         """
 
-        session = event.data.get(
-            "session"
-        )
 
-        move = event.data.get(
-            "move"
-        )
+        game_id = event.data["game_id"]
 
+        source = event.data["source"]
 
-        if session is None:
-            return
+        target = event.data["target"]
 
-
-        if move is None:
-            return
-
-
-        if session.room is None:
-            return
 
 
         self._game_manager.handle_move(
-            session.room.room_id,
-            move
+
+            game_id,
+
+            source,
+
+            target
+
         )
-
-
-
-    # Handle player timeout.
-    def handle_timeout(
-        self,
-        event
-    ):
-        """
-        Finish game after timeout.
-        """
-
-        session = event.data.get(
-            "session"
-        )
-
-
-        if session is None:
-            return
-
-
-        if session.room is None:
-            return
-
-
-        room_id = session.room.room_id
-
-
-        game = self._game_manager.get_game(
-            room_id
-        )
-
-
-        if game is None:
-            return
-
-
-        game.finish()
-
-
-        self._bus.publish(
-            Event(
-                EventType.GAME_FINISHED,
-                {
-                    "room_id": room_id,
-                    "reason": "timeout"
-                }
-            )
-        )
-
-
-
-    # Return game snapshot.
-    def get_snapshot(
-        self,
-        room_id
-    ):
-        """
-        Return current game state.
-        """
-
-        game = self._game_manager.get_game(
-            room_id
-        )
-
-
-        if game is None:
-            return None
-
-
-        return game.get_snapshot()

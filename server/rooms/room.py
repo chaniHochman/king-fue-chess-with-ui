@@ -1,114 +1,111 @@
-#Room מייצגת חדר משחק אחד.
-# שמירת המשתמשים בחדר.
-# קביעת תפקיד.
-# בדיקה האם החדר מלא.
-import uuid
-from server.common.player import PlayerRole
+from server.session.player_role import PlayerRole
+
+
 
 class Room:
     """
-    Represents one game room.
+    Represents game room.
 
-    A room can contain two players
-    and any number of viewers.
+    Responsible for:
+    - storing players
+    - assigning roles
+    - storing viewers
+
+    Does not know:
+    - game rules
+    - networking
     """
 
 
-    # Create a new room.
-    def __init__(self):
 
-        self.room_id = str(
-            uuid.uuid4()
-        )
+    # Initialize room.
+    def __init__(
+        self,
+        room_id
+    ):
+        """
+        Create empty room.
+        """
 
-        self.white_player = None
+        self.room_id = room_id
 
-        self.black_player = None
+        self.players = []
 
         self.viewers = []
 
-        self.game_session = None
 
-    # Add a session into the room.
-    def add_session(
+
+    # Add session.
+    def add_player(
         self,
         session
     ):
+        """
+        Add player or viewer.
+        """
 
-        if self.white_player is None:
+        if len(self.players) == 0:
 
-            self.white_player = session
-
-            session.room = self
+            self.players.append(
+                session
+            )
 
             return PlayerRole.WHITE
 
 
-        if self.black_player is None:
 
-            self.black_player = session
+        if len(self.players) == 1:
 
-            session.room = self
+            self.players.append(
+                session
+            )
 
             return PlayerRole.BLACK
+
 
 
         self.viewers.append(
             session
         )
 
-        session.room = self
-
         return PlayerRole.VIEWER
 
 
 
-    # Remove a session from the room.
+    # Remove session.
     def remove_session(
         self,
         session
     ):
+        """
+        Remove user from room.
+        """
 
-        if self.white_player == session:
+        if session in self.players:
 
-            self.white_player = None
+            self.players.remove(
+                session
+            )
 
-        elif self.black_player == session:
 
-            self.black_player = None
-
-        elif session in self.viewers:
+        if session in self.viewers:
 
             self.viewers.remove(
                 session
             )
 
-        session.room = None
 
 
-
-    # Check whether room has two players.
-    def is_ready(self):
+    # Check empty.
+    def is_empty(
+        self
+    ):
+        """
+        Return if no users exist.
+        """
 
         return (
-            self.white_player is not None
+            len(self.players) == 0
             and
-            self.black_player is not None
+            len(self.viewers) == 0
         )
-    # Return all sessions inside the room.
-    def get_all_sessions(self):
-        """
-        Return players and viewers in this room.
-        """
-
-        sessions = []
-
-        if self.white_player:
-            sessions.append(self.white_player)
-
-        if self.black_player:
-            sessions.append(self.black_player)
-
-        sessions.extend(self.viewers)
-
-        return sessions

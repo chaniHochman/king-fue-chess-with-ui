@@ -1,26 +1,23 @@
-# להאזין ל־LOGIN_SUCCESS
-# ליצור Session
-# לשמור אותו ב־SessionManager
 from server.session.session import Session
-
 from server.bus.event import Event
-
 from server.bus.event_type import EventType
 
 
 class SessionService:
     """
-    Creates online sessions.
+    Creates user sessions after login.
 
-    Responsible only for:
+    Responsible for:
     - creating Session objects
     - storing sessions
 
     Does not know:
-    - authentication
+    - authentication logic
     - rooms
     - games
+    - database
     """
+
 
 
     # Initialize session service.
@@ -31,24 +28,26 @@ class SessionService:
     ):
         """
         Store dependencies
-        and register listeners.
+        and register events.
         """
 
-        self.bus = bus
+        self._bus = bus
 
-        self.session_manager = session_manager
+        self._session_manager = session_manager
 
         self.register_events()
 
 
 
     # Register event listeners.
-    def register_events(self):
+    def register_events(
+        self
+    ):
         """
-        Listen to successful login.
+        Listen to login success.
         """
 
-        self.bus.subscribe(
+        self._bus.subscribe(
             EventType.LOGIN_SUCCESS,
             self.create_session
         )
@@ -61,8 +60,8 @@ class SessionService:
         event
     ):
         """
-        Create a new online session
-        and notify the server.
+        Create online session
+        after successful authentication.
         """
 
 
@@ -72,17 +71,17 @@ class SessionService:
 
 
         session = Session(
-            user,
-            connection
+            connection,
+            user
         )
 
 
-        self.session_manager.add_session(
+        self._session_manager.add_session(
             session
         )
 
 
-        self.bus.publish(
+        self._bus.publish(
 
             Event(
 
@@ -93,6 +92,7 @@ class SessionService:
 
                     "username":
                     user.username
+
                 }
 
             )

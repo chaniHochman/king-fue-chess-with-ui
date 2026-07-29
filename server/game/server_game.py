@@ -1,17 +1,20 @@
+from server.bus.event import Event
+from server.bus.event_type import EventType
+
+
 class ServerGame:
     """
-    Represents one running game.
+    Represents one active game on server.
 
     Responsible for:
-    - connecting server with GameEngine
-    - sending moves to engine
-    - returning game snapshot
+    - storing game engine
+    - forwarding moves
+    - publishing game events
 
     Does not know:
-    - networking
-    - sessions
-    - database
-    - matchmaking
+    - rooms
+    - authentication
+    - network
     """
 
 
@@ -19,64 +22,144 @@ class ServerGame:
     # Initialize server game.
     def __init__(
         self,
-        room,
-        game_engine
+        game_id,
+        game_engine,
+        bus
     ):
         """
-        Store room and engine.
+        Store game information.
         """
 
-        self.room = room
+        self.game_id = game_id
 
         self.game_engine = game_engine
 
+        self.bus = bus
 
 
-    # Process player move.
+
+        self.finished = False
+
+
+
+    # Execute player move.
     def make_move(
         self,
-        move
+        source,
+        target
     ):
         """
-        Send move to GameEngine.
+        Send move request
+        to authoritative GameEngine.
         """
 
-        if isinstance(move, (tuple, list)):
 
-            if len(move) == 2:
+        if self.finished:
 
-                source, target = move
-
-                return self.game_engine.request_move(
-                    source,
-                    target
-                )
+            return False
 
 
-        return self.game_engine.request_move(
-            move
+
+        result = self.game_engine.request_move(
+            source,
+            target
         )
 
 
+        if result.success:
 
-    # Return game snapshot.
+
+            self.bus.publish(
+
+                Event(
+
+                    EventType.MOVE_ACCEPTED,
+
+                    {
+                        "game_id": self.game_id,
+
+                        "source": source,
+
+                        "target": target
+
+                    }
+
+                )
+
+            )
+
+
+        else:
+
+
+            self.bus.publish(
+
+                Event(
+
+                    EventType.MOVE_REJECTED,
+
+                    {
+                        "game_id": self.game_id,
+
+                        "reason": result.reason
+
+                    }
+
+                )
+
+            )
+
+
+
+        return result
+
+
+
+    # Get current game state.
     def get_snapshot(
         self
     ):
         """
-        Return current game state.
+        Return current board snapshot.
         """
 
         return self.game_engine.create_snapshot()
 
 
 
-    # Check game engine state.
+    # Check if game ended.
     def is_finished(
         self
     ):
         """
-        Ask engine if game ended.
+        Return game status.
         """
 
-        return self.game_engine.is_game_over()
+        return self.finished
+
+
+
+    # Finish game.
+    def finish(
+        self
+    ):
+        """
+        Mark game as finished.
+        """
+
+        self.finished = True
+
+
+        self.bus.publish(
+
+            Event(
+
+                EventType.GAME_ENDED,
+
+                {
+                    "game_id": self.game_id
+                }
+
+            )
+
+        )

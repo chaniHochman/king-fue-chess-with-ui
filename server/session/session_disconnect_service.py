@@ -1,30 +1,31 @@
 from server.bus.event_type import EventType
 
 
+
 class SessionDisconnectService:
     """
-    Handles client disconnection.
+    Handles user disconnection.
 
     Responsible for:
     - finding session
-    - marking session disconnected
+    - marking disconnected
 
     Does not know:
-    - network
-    - rooms
     - games
+    - rooms
+    - network details
     """
 
 
-    # Initialize disconnect service.
+
+    # Initialize service.
     def __init__(
         self,
         bus,
         session_manager
     ):
         """
-        Store dependencies
-        and register events.
+        Store dependencies.
         """
 
         self._bus = bus
@@ -35,29 +36,28 @@ class SessionDisconnectService:
 
 
 
-    # Register disconnect listener.
-    def register_events(self):
+    # Register listener.
+    def register_events(
+        self
+    ):
         """
-        Subscribe to disconnect events.
+        Subscribe to disconnect.
         """
 
         self._bus.subscribe(
-
-            EventType.PLAYER_DISCONNECTED,
-
+            EventType.CLIENT_DISCONNECTED,
             self.handle_disconnect
-
         )
 
 
 
-    # Handle player disconnect.
+    # Handle disconnect.
     def handle_disconnect(
         self,
         event
     ):
         """
-        Mark session as disconnected.
+        Mark session offline.
         """
 
         connection = event.data["connection"]

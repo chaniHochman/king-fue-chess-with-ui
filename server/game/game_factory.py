@@ -1,29 +1,26 @@
 from server.game.server_game import ServerGame
-from server.game.game_session import GameSession
 
 
 class GameFactory:
     """
-    Creates complete multiplayer game sessions.
+    Creates ServerGame objects.
 
-    Responsible only for:
-    - creating game engine
-    - creating ServerGame
-    - creating GameSession
+    Responsible for:
+    - creating new games
 
     Does not know:
-    - networking
-    - database
-    - authentication
-    - rooms logic
+    - rooms
+    - players
+    - matchmaking
     """
+
 
 
     # Initialize game factory.
     def __init__(
         self,
         bus,
-        engine_factory
+        game_engine_factory
     ):
         """
         Store dependencies.
@@ -31,42 +28,33 @@ class GameFactory:
 
         self._bus = bus
 
-        self._engine_factory = engine_factory
+        self._game_engine_factory = game_engine_factory
 
 
 
-    # Create a complete multiplayer game.
+    # Create new server game.
     def create_game(
         self,
-        room
+        game_id
     ):
         """
-        Create one isolated game session.
-
-        Steps:
-        1. Create GameEngine.
-        2. Wrap it with ServerGame.
-        3. Wrap it with GameSession.
+        Build new ServerGame.
         """
 
 
-        game_engine = (
-            self._engine_factory
-            .create_engine()
-        )
+        engine = self._game_engine_factory.create_engine()
 
 
-        server_game = ServerGame(
-            room,
-            game_engine
-        )
 
+        game = ServerGame(
 
-        game_session = GameSession(
-            room,
-            server_game,
+            game_id,
+
+            engine,
+
             self._bus
+
         )
 
 
-        return game_session
+        return game

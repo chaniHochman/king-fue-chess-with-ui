@@ -1,72 +1,104 @@
-import socket
+import json
+
+from server.bus.event import Event
+from server.bus.event_type import EventType
 
 
 class ClientConnection:
     """
-    Represents one client connection.
+    Represents one connected client.
 
     Responsible for:
-    - receiving messages
-    - sending messages
-    - closing connection
+    - receiving data
+    - sending data
+    - publishing client messages
 
     Does not know:
     - authentication
     - rooms
     - games
-    - database
     """
-
 
 
     # Initialize client connection.
     def __init__(
         self,
-        socket,
-        address
+        connection,
+        address,
+        bus
     ):
         """
-        Store socket information.
+        Store network connection.
         """
 
-        self._socket = socket
+        self._connection = connection
 
-        self.address = address
+        self._address = address
+
+        self._bus = bus
 
         self._connected = True
 
 
 
-    # Receive message from client.
+    # Receive data from client.
     def receive(
         self
     ):
         """
-        Read data from socket.
+        Receive JSON message
+        and publish event.
         """
 
         try:
 
-            data = self._socket.recv(
+            data = self._connection.recv(
                 4096
             )
-
+            print(
+                "SERVER RECEIVED:",
+                data.decode("utf-8")
+            )
 
             if not data:
 
-                self._connected = False
+                self.close()
 
                 return None
 
 
-            return data.decode(
-                "utf-8"
+            message = json.loads(
+                data.decode("utf-8")
+            )
+            print(
+                "SERVER RECEIVED FROM SOCKET:",
+                message
+            )
+
+            self._bus.publish(
+
+                Event(
+
+                    EventType.CLIENT_MESSAGE,
+
+                    {
+                        "connection": self,
+
+                        "message": message
+
+                    }
+
+                )
+
             )
 
 
-        except:
+            return message
 
-            self._connected = False
+
+        except Exception:
+
+            self.close()
 
             return None
 
@@ -78,7 +110,7 @@ class ClientConnection:
         message
     ):
         """
-        Send message object or text.
+        Send JSON message.
         """
 
         if not self._connected:
@@ -87,28 +119,23 @@ class ClientConnection:
 
         try:
 
-            if hasattr(message, "to_dict"):
-
-                import json
-
-                message = json.dumps(
-                    message.to_dict()
-                )
+            encoded = json.dumps(
+                message
+            )
 
 
-            self._socket.send(
-                message.encode(
-                    "utf-8"
-                )
+            self._connection.send(
+                encoded.encode("utf-8")
             )
 
 
         except Exception:
 
-            self._connected = False
+            self.close()
 
 
-    # Check connection status.
+
+    # Check connection state.
     def is_connected(
         self
     ):
@@ -120,12 +147,12 @@ class ClientConnection:
 
 
 
-    # Close client connection.
+    # Close connection.
     def close(
         self
     ):
         """
-        Close socket.
+        Close socket safely.
         """
 
         self._connected = False
@@ -133,7 +160,7 @@ class ClientConnection:
 
         try:
 
-            self._socket.close()
+            self._connection.close()
 
 
         except:

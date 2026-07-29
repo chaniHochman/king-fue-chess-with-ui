@@ -1,128 +1,178 @@
+import time
+
 from server.bus.event import Event
 from server.bus.event_type import EventType
+from server.config.server_config import ServerConfig
+
 
 
 class MatchmakingService:
     """
-    Finds opponents for players.
+    Finds opponents.
 
     Responsible for:
-    - storing waiting players
-    - comparing ratings
-    - creating matches
+    - matchmaking queue
+    - rating comparison
+    - timeout handling
 
     Does not know:
+    - game rules
     - rooms
-    - games
-    - networking
-    - database
     """
 
 
-    # Initialize matchmaking service.
+
+    # Initialize matchmaking.
     def __init__(
         self,
         bus
     ):
         """
-        Store message bus.
+        Store dependencies.
         """
 
         self._bus = bus
 
-        self._waiting_players = []
+
+        self._queue = []
+
 
         self.register_events()
 
 
 
-    # Register matchmaking events.
-    def register_events(self):
+    # Register events.
+    def register_events(
+        self
+    ):
         """
-        Subscribe to match requests.
+        Listen for matchmaking requests.
         """
 
         self._bus.subscribe(
+
             EventType.MATCH_REQUEST,
-            self.handle_match_request
+
+            self.add_player
+
         )
 
 
 
-    # Handle new match request.
-    def handle_match_request(
+    # Add player to queue.
+    def add_player(
         self,
         event
     ):
         """
-        Add player and search opponent.
+        Search opponent.
         """
 
-        player = {
-            "session":
-            event.data["session"],
-
-            "rating":
-            event.data["rating"].user.rating
-        }
+        session = event.data["session"]
 
 
-        opponent = self.find_opponent(
-            player
+
+        rating = session.user.rating
+
+
+
+        for waiting in self._queue:
+
+
+            if abs(
+                waiting["rating"] - rating
+            ) <= 100:
+
+
+                self._queue.remove(
+                    waiting
+                )
+
+
+                self._bus.publish(
+
+                    Event(
+
+                        EventType.MATCH_FOUND,
+
+                        {
+                            "player1":
+                            waiting["session"],
+
+                            "player2":
+                            session
+
+                        }
+
+                    )
+
+                )
+
+
+                return
+
+
+
+        self._queue.append(
+
+            {
+                "session": session,
+
+                "rating": rating,
+
+                "time": time.time()
+
+            }
+
         )
 
 
-        if opponent is None:
 
-            self._waiting_players.append(
-                player
-            )
-
-            return
-
-
-
-        self._waiting_players.remove(
-            opponent
-        )
-
-
-        self._bus.publish(
-            Event(
-                EventType.MATCH_FOUND,
-                {
-                    "player1":
-                    opponent["session"],
-
-                    "player2":
-                    player["session"]
-                }
-            )
-        )
-
-
-
-    # Find suitable opponent.
-    def find_opponent(
-        self,
-        player
+    # Remove expired searches.
+    def cleanup(
+        self
     ):
         """
-        Search player with close rating.
+        Remove players waiting too long.
         """
 
-        for waiting in self._waiting_players:
+        now = time.time()
 
-            difference = abs(
-                waiting["rating"]
-                -
-                player["rating"]
+
+        expired = []
+
+
+        for item in self._queue:
+
+
+            if now - item["time"] >= ServerConfig.MATCHMAKING_TIMEOUT:
+
+
+                expired.append(
+                    item
+                )
+
+
+        for item in expired:
+
+
+            self._queue.remove(
+                item
             )
 
 
-            if difference <= 100:
+            self._bus.publish(
 
-                return waiting
+                Event(
 
+                    EventType.MATCH_FAILED,
 
-        return None
+                    {
+                        "session":
+                        item["session"]
+
+                    }
+
+                )
+
+            )

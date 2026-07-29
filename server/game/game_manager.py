@@ -2,22 +2,22 @@ from server.bus.event import Event
 from server.bus.event_type import EventType
 
 
+
 class GameManager:
     """
-    Manages all active multiplayer games.
+    Manages active games.
 
     Responsible for:
-    - creating games
-    - storing active games
+    - storing games
     - finding games
-    - forwarding moves
+    - forwarding commands
 
     Does not know:
-    - networking
+    - game rules
     - authentication
-    - database
-    - game engine creation
+    - networking
     """
+
 
 
     # Initialize game manager.
@@ -34,145 +34,119 @@ class GameManager:
 
         self._game_factory = game_factory
 
+
         self._games = {}
 
-        self.register_events()
 
 
-
-    # Register game events.
-    def register_events(self):
-        """
-        Subscribe to game requests.
-        """
-
-        self._bus.subscribe(
-            EventType.MOVE_REQUESTED,
-            self.handle_move_event
-        )
-
-
-
-    # Create game from room.
+    # Create game.
     def create_game(
         self,
-        room
+        game_id
     ):
         """
-        Create new GameSession
-        using GameFactory.
+        Create and store new game.
         """
 
-        game_session = (
-            self._game_factory.create_game(
-                room
-            )
+
+        game = self._game_factory.create_game(
+            game_id
         )
 
 
-        self._games[
-            room.room_id
-        ] = game_session
-
-
-        return game_session
+        self._games[game_id] = game
 
 
 
-    # Find game by room id.
+        self._bus.publish(
+
+            Event(
+
+                EventType.GAME_CREATED,
+
+                {
+                    "game_id": game_id
+                }
+
+            )
+
+        )
+
+
+        return game
+
+
+
+    # Get game.
     def get_game(
         self,
-        room_id
+        game_id
     ):
         """
         Return active game.
         """
 
         return self._games.get(
-            room_id
+            game_id
         )
 
 
 
-    # Handle move request event.
-    def handle_move_event(
+    # Remove game.
+    def remove_game(
         self,
-        event
+        game_id
     ):
         """
-        Receive move request
-        and forward it.
+        Delete finished game.
         """
 
-        session = event.data.get(
-            "session"
-        )
-
-        move = event.data.get(
-            "move"
-        )
-
-
-        if session is None or move is None:
-            return None
-
-
-        room = getattr(
-            session,
-            "room",
+        return self._games.pop(
+            game_id,
             None
         )
 
 
-        if room is None:
-            return None
 
-
-        return self.handle_move(
-            room.room_id,
-            move
-        )
-
-
-
-    # Execute player move.
+    # Handle move request.
     def handle_move(
         self,
-        room_id,
-        move
+        game_id,
+        source,
+        target
     ):
         """
-        Forward move to GameSession.
+        Forward move to ServerGame.
         """
 
+
         game = self.get_game(
-            room_id
+            game_id
         )
 
 
         if game is None:
-            return None
 
 
-        result = game.make_move(
-            move
+            return False
+
+
+
+        return game.make_move(
+            source,
+            target
         )
 
 
-        return result
 
-
-
-    # Remove finished game.
-    def remove_game(
-        self,
-        room_id
+    # Return all games.
+    def get_all_games(
+        self
     ):
         """
-        Remove game from active games.
+        Return active games.
         """
 
-        self._games.pop(
-            room_id,
-            None
+        return list(
+            self._games.values()
         )

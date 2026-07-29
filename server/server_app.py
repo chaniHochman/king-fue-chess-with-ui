@@ -7,11 +7,16 @@ from server.authentication.auth_service import AuthService
 from server.session.session_manager import SessionManager
 from server.session.session_service import SessionService
 from server.session.session_resolver import SessionResolver
+from server.session.session_disconnect_service import SessionDisconnectService
+from server.session.reconnect_service import ReconnectService
 
 from server.rooms.room_manager import RoomManager
 from server.rooms.room_service import RoomService
 
 from server.game.game_manager import GameManager
+from server.game.game_service import GameService
+from server.game.game_factory import GameFactory
+from server.game.game_engin_factory import GameEngineFactory
 
 from server.services.logger_service import LoggerService
 from server.services.score_service import ScoreService
@@ -20,77 +25,66 @@ from server.services.animation_service import AnimationService
 
 from server.network.connection_manager import ConnectionManager
 from server.network.tcp_server import TCPServer
-from server.game.game_service import GameService
-from server.commands.client_command_handler import ClientCommandHandler
-from server.session.session_disconnect_service import SessionDisconnectService
-from server.bus.event_type import EventType
-from server.session.reconnect_service import ReconnectService
-from server.session.session_disconnect_service import SessionDisconnectService
 
-from server.game.game_disconnect_service import GameDisconnectService
-from server.session.disconnect_monitor import DisconnectMonitor
-from server.game.game_factory import GameFactory
-from server.game.game_engin_factory import GameEngineFactory
+from server.commands.client_command_handler import ClientCommandHandler
+
+from server.services.disconnect_monitor import DisconnectMonitor
+from server.bus.event_type import EventType
+
 
 class ServerApp:
     """
-    Main server composition root.
+    Creates and connects all server components.
 
-    Creates all server components
-    and connects dependencies.
-
-    Knows:
-    - what exists in the server
+    Responsible only for:
+    - dependency creation
+    - service wiring
 
     Does not know:
     - game rules
     - authentication logic
-    - room logic
     """
 
 
-    # Initialize complete server.
-    def __init__(self):
+
+    # Initialize server.
+    def __init__(
+        self
+    ):
         """
-        Create all components
-        and connect dependencies.
+        Build complete server.
         """
 
-
-        # Central event communication system.
+        # Central communication channel.
         self.bus = MessageBus()
 
 
-        # Database storage layer.
+
+        # Database.
         self.database = Database()
 
-        self.game_engine_factory = GameEngineFactory(
-            score_data,
-            moves_log
-        )
 
 
-        # Network connection storage.
+        # Network connections.
         self.connection_manager = ConnectionManager()
 
 
-        # Active user sessions.
+
+        # User sessions.
         self.session_manager = SessionManager()
 
 
-        self.disconnect_service = SessionDisconnectService(
-            self.bus,
-            self.session_manager
-        )
-        # Authentication service.
+
+        # Authentication.
         self.auth_service = AuthService(
-            self.database,
-            self.bus
+            self.bus,
+            self.database
+            
         )
 
 
 
-        # Creates sessions after login.
+        # Session creation after login.
         self.session_service = SessionService(
             self.bus,
             self.session_manager
@@ -98,28 +92,34 @@ class ServerApp:
 
 
 
-        # Resolves connection into session.
+        # Resolve connection -> session.
         self.session_resolver = SessionResolver(
             self.bus,
             self.session_manager
         )
 
-        self.session_disconnect_service = SessionDisconnectService(
+
+
+        # Disconnect handling.
+        self.disconnect_service = SessionDisconnectService(
             self.bus,
             self.session_manager
         )
 
+
+
+        # Reconnect handling.
         self.reconnect_service = ReconnectService(
             self.bus,
             self.session_manager
         )
 
-        # Room storage manager.
+
+
+        # Rooms.
         self.room_manager = RoomManager()
 
 
-
-        # Handles room events.
         self.room_service = RoomService(
             self.bus,
             self.room_manager
@@ -127,10 +127,15 @@ class ServerApp:
 
 
 
-        # Active games manager.
+        # Game creation.
+        self.game_engine_factory = GameEngineFactory()
+
+
         self.game_factory = GameFactory(
-            self.bus
+            self.bus,
+            self.game_engine_factory
         )
+
 
 
         self.game_manager = GameManager(
@@ -138,39 +143,32 @@ class ServerApp:
             self.game_factory
         )
 
-        #disconnect service for games.
-        self.game_disconnect_service = GameDisconnectService(
-            self.bus,
-            self.game_manager
-        )
-
-
-        self.disconnect_monitor = DisconnectMonitor(
-            self.bus,
-            self.session_manager
-        )
 
 
         self.game_service = GameService(
             self.bus,
             self.game_manager,
-            self.room_manager,
-            self.game_engine_factory
+            self.room_manager
         )
 
-        # Server services.
+
+
+        # Background services.
         self.logger_service = LoggerService(
             self.bus
         )
+
 
         self.score_service = ScoreService(
             self.bus,
             self.database
         )
 
+
         self.sound_service = SoundService(
             self.bus
         )
+
 
         self.animation_service = AnimationService(
             self.bus
@@ -178,23 +176,28 @@ class ServerApp:
 
 
 
-        # Converts client messages into events.
-        self.command_handler = ClientCommandHandler(
+        # Disconnect timer.
+        self.disconnect_monitor = DisconnectMonitor(
             self.bus,
             self.session_manager
         )
 
 
 
-        # Receive messages from clients.
+        # Client command translation.
+        self.command_handler = ClientCommandHandler(
+            self.bus
+        )
+
+
         self.bus.subscribe(
-            EventType.CLIENT_MESSAGE,
+            "CLIENT_MESSAGE",
             self.command_handler.handle
         )
 
 
 
-        # TCP communication server.
+        # TCP communication.
         self.server = TCPServer(
             "localhost",
             5000,
@@ -205,9 +208,12 @@ class ServerApp:
 
 
     # Start server.
-    def start(self):
+    def start(
+        self
+    ):
         """
-        Start server.
+        Start background services
+        and network server.
         """
 
         self.disconnect_monitor.start()
@@ -217,10 +223,13 @@ class ServerApp:
 
 
     # Stop server.
-    def stop(self):
+    def stop(
+        self
+    ):
         """
-        Shutdown server safely.
+        Shutdown server.
         """
+
         self.disconnect_monitor.stop()
 
         self.server.stop()

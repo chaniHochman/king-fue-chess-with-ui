@@ -1,21 +1,24 @@
+import threading
 import time
 
+from server.config import ServerConfig
 from server.bus.event import Event
 from server.bus.event_type import EventType
 
 
+
 class DisconnectMonitor:
     """
-    Monitors disconnected players.
+    Monitors disconnected sessions.
 
     Responsible for:
     - checking disconnect timeout
-    - publishing player timeout
+    - publishing timeout events
 
     Does not know:
-    - networking
     - games
-    - database
+    - rooms
+    - rating
     """
 
 
@@ -24,8 +27,7 @@ class DisconnectMonitor:
     def __init__(
         self,
         bus,
-        session_manager,
-        timeout_seconds=20
+        session_manager
     ):
         """
         Store dependencies.
@@ -35,62 +37,100 @@ class DisconnectMonitor:
 
         self._session_manager = session_manager
 
-        self._timeout = timeout_seconds
+        self._running = False
 
-        self.register_events()
+        self._thread = None
 
 
 
-    # Register disconnect events.
-    def register_events(
+    # Start monitoring thread.
+    def start(
         self
     ):
         """
-        Listen to disconnect events.
+        Start background monitor.
         """
 
-        self._bus.subscribe(
-            EventType.SESSION_DISCONNECTED,
-            self.check_sessions
+        self._running = True
+
+
+        self._thread = threading.Thread(
+
+            target=self.monitor_loop,
+
+            daemon=True
+
         )
 
 
+        self._thread.start()
 
-    # Check disconnected sessions.
-    def check_sessions(
-        self,
-        event=None
+
+
+    # Stop monitor.
+    def stop(
+        self
     ):
         """
-        Find sessions that passed timeout.
+        Stop background thread.
         """
 
-        now = time.time()
+        self._running = False
 
 
-        for session in self._session_manager.get_all_sessions():
 
-            if session.connected:
-                continue
+    # Main monitoring loop.
+    def monitor_loop(
+        self
+    ):
+        """
+        Check disconnected users.
+        """
 
-
-            if session.disconnect_time is None:
-
-                session.disconnect_time = now
-
-                continue
-
-
-            elapsed = now - session.disconnect_time
+        while self._running:
 
 
-            if elapsed >= self._timeout:
+            sessions = self._session_manager.get_all_sessions()
 
-                self._bus.publish(
-                    Event(
-                        EventType.PLAYER_TIMEOUT,
-                        {
-                            "session": session
-                        }
+
+            now = time.time()
+
+
+            for session in sessions:
+
+
+                if session.connected:
+
+                    continue
+
+
+                if session.disconnect_time is None:
+
+                    continue
+
+
+
+                elapsed = now - session.disconnect_time
+
+
+
+                if elapsed >= ServerConfig.DISCONNECT_TIMEOUT:
+
+
+                    self._bus.publish(
+
+                        Event(
+
+                            EventType.DISCONNECT_TIMEOUT,
+
+                            {
+                                "session": session
+                            }
+
+                        )
+
                     )
-                )
+
+
+
+            time.sleep(1)

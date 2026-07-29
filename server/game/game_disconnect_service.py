@@ -1,114 +1,96 @@
-# לקבל PLAYER_TIMEOUT
-# למצוא את המשחק של השחקן
-# לסיים את המשחק
-# לקבוע מנצח ומפסיד
-# לפרסם GAME_FINISHED
-
 from server.bus.event import Event
 from server.bus.event_type import EventType
 
 
+
 class GameDisconnectService:
     """
-    Handles game ending because
-    of player disconnect timeout.
+    Handles game disconnection.
 
     Responsible for:
-    - finding opponent
-    - finishing game
-    - publishing game result
+    - resigning disconnected players
 
     Does not know:
-    - database
+    - authentication
     - networking
     - rating calculation
     """
 
 
 
-    # Initialize disconnect game service.
+    # Initialize service.
     def __init__(
         self,
         bus,
         game_manager
     ):
         """
-        Store dependencies
-        and register listeners.
+        Store dependencies.
         """
 
         self._bus = bus
 
         self._game_manager = game_manager
 
+
         self.register_events()
 
 
 
-    # Register timeout listener.
-    def register_events(self):
+    # Register listeners.
+    def register_events(
+        self
+    ):
         """
-        Subscribe to player timeout events.
+        Subscribe to disconnect timeout.
         """
 
         self._bus.subscribe(
-            EventType.PLAYER_TIMEOUT,
-            self.handle_timeout
+
+            EventType.DISCONNECT_TIMEOUT,
+
+            self.handle_disconnect
+
         )
 
 
 
-    # Handle disconnected player.
-    def handle_timeout(
+    # Handle player timeout.
+    def handle_disconnect(
         self,
         event
     ):
         """
-        Finish game after
-        disconnect timeout.
+        End game after timeout.
         """
 
         session = event.data["session"]
 
 
-        room = session.room
+
+        game_id = getattr(
+
+            session,
+
+            "game_id",
+
+            None
+
+        )
 
 
-        if room is None:
+        if game_id is None:
+
             return
 
 
+
         game = self._game_manager.get_game(
-            room.room_id
+            game_id
         )
 
 
         if game is None:
-            return
-
-
-
-        white = room.white_player
-
-        black = room.black_player
-
-
-
-        if session == white:
-
-            winner = black
-
-            loser = white
-
-
-        elif session == black:
-
-            winner = white
-
-            loser = black
-
-
-        else:
 
             return
 
@@ -122,17 +104,13 @@ class GameDisconnectService:
 
             Event(
 
-                EventType.GAME_FINISHED,
+                EventType.GAME_ENDED,
 
                 {
-                    "winner":
-                    winner.user.username,
+                    "game_id": game_id,
 
-                    "loser":
-                    loser.user.username,
+                    "reason": "disconnect"
 
-                    "reason":
-                    "disconnect_timeout"
                 }
 
             )

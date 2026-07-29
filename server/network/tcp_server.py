@@ -1,26 +1,23 @@
 import socket
 import threading
 
-
 from server.network.client_connection import ClientConnection
-
 from server.bus.event import Event
 from server.bus.event_type import EventType
-import json
 
 
 
 class TCPServer:
     """
-    Main TCP server.
+    TCP server.
 
     Responsible for:
-    - accepting clients
-    - receiving messages
-    - publishing network events
+    - accepting connections
+    - creating client connections
+    - forwarding messages
 
     Does not know:
-    - users
+    - authentication
     - rooms
     - games
     """
@@ -30,24 +27,26 @@ class TCPServer:
     # Initialize TCP server.
     def __init__(
         self,
-        bus,
+        host,
+        port,
         connection_manager,
-        host="localhost",
-        port=5000
+        bus
     ):
         """
         Store server dependencies.
         """
 
-        self._bus = bus
-
-        self._connection_manager = connection_manager
-
         self._host = host
 
         self._port = port
 
+        self._connection_manager = connection_manager
+
+        self._bus = bus
+
         self._running = False
+
+        self._socket = None
 
 
 
@@ -56,17 +55,17 @@ class TCPServer:
         self
     ):
         """
-        Open socket and accept clients.
+        Open TCP socket
+        and accept clients.
         """
 
-
-        server_socket = socket.socket(
+        self._socket = socket.socket(
             socket.AF_INET,
             socket.SOCK_STREAM
         )
 
 
-        server_socket.bind(
+        self._socket.bind(
             (
                 self._host,
                 self._port
@@ -74,36 +73,37 @@ class TCPServer:
         )
 
 
-        server_socket.listen()
-
+        self._socket.listen()
 
 
         self._running = True
 
 
         print(
-            f"Server started on {self._host}:{self._port}"
+            "Server started:",
+            self._host,
+            self._port
         )
-
 
 
         while self._running:
 
-
-            client_socket, address = server_socket.accept()
-
+            connection, address = self._socket.accept()
 
 
-            connection = ClientConnection(
-                client_socket,
-                address
+            client = ClientConnection(
+                connection,
+                address,
+                self._bus
             )
 
 
             self._connection_manager.add(
-                connection
+                client
+                        )
+            print(
+                "PUBLISH CLIENT_MESSAGE EVENT"
             )
-
 
             self._bus.publish(
 
@@ -112,8 +112,7 @@ class TCPServer:
                     EventType.CLIENT_CONNECTED,
 
                     {
-                        "connection":
-                        connection
+                        "connection": client
                     }
 
                 )
@@ -122,110 +121,26 @@ class TCPServer:
 
 
             thread = threading.Thread(
-
-                target=self.listen_client,
-
-                args=(connection,)
-
+                target=client.receive,
+                daemon=True
             )
-            
 
 
             thread.start()
 
 
 
-
-    # Listen to one client.
-    def listen_client(
-        self,
-        connection
+    # Stop server.
+    def stop(
+        self
     ):
         """
-        Receive messages from client.
+        Close server safely.
         """
 
-
-        while connection.is_connected():
-
-
-            message = connection.receive()
+        self._running = False
 
 
+        if self._socket:
 
-            if message is None:
-
-                break
-
-
-
-            # self._bus.publish(
-
-            #     Event(
-
-            #         EventType.CLIENT_MESSAGE,
-
-            #         {
-            #             "connection":
-            #             connection,
-
-            #             "message":
-            #             message
-            #         }
-
-            #     )
-
-            # )
-            try:
-
-                message_data = json.loads(
-                    message
-                )
-
-
-            except Exception:
-
-                continue
-
-
-
-            self._bus.publish(
-
-                Event(
-
-                    EventType.CLIENT_MESSAGE,
-
-                    {
-                        "connection":
-                        connection,
-
-                        "message":
-                        message_data
-                    }
-
-                )
-
-            )
-
-
-
-        self._connection_manager.remove(
-            connection
-        )
-
-
-
-        self._bus.publish(
-
-            Event(
-
-                EventType.CLIENT_DISCONNECTED,
-
-                {
-                    "connection":
-                    connection
-                }
-
-            )
-
-        )
+            self._socket.close()

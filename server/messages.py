@@ -1,24 +1,22 @@
-#מחזיקה את מבנה ההודעות שעוברות בין:
-
-# Client
-# Server
-# מייצגת הודעה אחידה בין הלקוח לשרת (סוג הודעה + נתונים).
-from server.common.message_type import MessageType
 import json
+
 
 class Message:
     """
-    Represents communication message.
+    Represents client-server message.
 
     Responsible for:
-    - storing message type
-    - storing message data
+    - message type
+    - message data
+    - serialization
 
     Does not know:
     - network
-    - users
-    - games
+    - game logic
     """
+
+
+    SEPARATOR = "\n"
 
 
 
@@ -26,10 +24,10 @@ class Message:
     def __init__(
         self,
         message_type,
-        data
+        data=None
     ):
         """
-        Store message information.
+        Store message data.
         """
 
         self.type = message_type
@@ -43,52 +41,58 @@ class Message:
         self
     ):
         """
-        Return message representation.
+        Create JSON structure.
         """
 
         return {
 
-            "type":
-            self.type.value,
+            "type": self.type,
 
-            "data":
-            self.data
+            "data": self.data
 
         }
 
 
 
-    # Create message from dictionary.
-    @staticmethod
-    def from_dict(
-        data
+    # Encode message.
+    def encode(
+        self
     ):
         """
-        Build Message object.
+        Convert message into TCP format.
         """
 
-        message_type = MessageType(
-            data["type"]
+        return (
+            json.dumps(
+                self.to_dict()
+            )
+            +
+            self.SEPARATOR
+        ).encode("utf-8")
+
+
+
+    # Decode message.
+    @staticmethod
+    def decode(
+        raw
+    ):
+        """
+        Create message from JSON.
+        """
+
+        data = json.loads(
+            raw
         )
 
 
         return Message(
 
-            message_type,
+            data["type"],
 
             data.get(
                 "data",
                 {}
             )
 
-        )
-    # Convert message into JSON string.
-    def encode(self):
-        """
-        Convert message object
-        into network format.
-        """
-
-        return json.dumps(
-            self.to_dict()
         )

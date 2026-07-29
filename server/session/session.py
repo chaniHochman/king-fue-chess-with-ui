@@ -3,20 +3,19 @@ import time
 
 class Session:
     """
-    Represents connected user session.
+    Represents connected user.
 
     Responsible for:
-    - storing connection
     - storing user
-    - tracking connection state
-    - tracking current room
+    - storing connection
+    - connection state
+    - current room
 
     Does not know:
-    - authentication logic
+    - authentication
     - games
     - database
     """
-
 
 
     # Initialize session.
@@ -26,7 +25,7 @@ class Session:
         user=None
     ):
         """
-        Store client connection and user.
+        Store user connection.
         """
 
         self.connection = connection
@@ -41,12 +40,12 @@ class Session:
 
 
 
-    # Mark session disconnected.
+    # Disconnect session.
     def disconnect(
         self
     ):
         """
-        Update disconnect state.
+        Mark session disconnected.
         """
 
         self.connected = False
@@ -55,13 +54,13 @@ class Session:
 
 
 
-    # Restore session connection.
+    # Reconnect session.
     def reconnect(
         self,
         connection
     ):
         """
-        Reconnect existing session.
+        Replace old connection.
         """
 
         self.connection = connection
@@ -72,38 +71,50 @@ class Session:
 
 
 
-    # Attach user to session.
-    def set_user(
+    # Assign room.
+    def join_room(
         self,
-        user
+        room
     ):
         """
-        Store authenticated user.
+        Attach session to room.
         """
 
-        self.user = user
+        self.room = room
 
 
 
-    # Check if user is authenticated.
+    # Remove room.
+    def leave_room(
+        self
+    ):
+        """
+        Remove current room.
+        """
+
+        self.room = None
+
+
+
+    # Check authentication.
     def is_authenticated(
         self
     ):
         """
-        Return authentication state.
+        Return authentication status.
         """
 
         return self.user is not None
 
 
 
-    # Send message to client.
+    # Send message.
     def send(
         self,
         message
     ):
         """
-        Send message through connection.
+        Send message to client.
         """
 
         if self.connection:
@@ -111,3 +122,19 @@ class Session:
             self.connection.send(
                 message
             )
+
+
+
+    # Return username.
+    def username(
+        self
+    ):
+        """
+        Return username safely.
+        """
+
+        if self.user:
+
+            return self.user.username
+
+        return None

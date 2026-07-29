@@ -1,56 +1,53 @@
-from server.game.score_data import ScoreData
-from server.game.moves_log import MovesLog
-
-from logic.input_output.BoardParser import BoardParser
+from logic.model.board import Board
 from logic.rules.rule_engine import RuleEngine
 from logic.realtime.real_time_arbiter import RealTimeArbiter
 from logic.engine.game_engine import GameEngine
 
 
+
 class GameEngineFactory:
     """
-    Creates complete game engines.
+    Creates game engines.
 
-    Responsible only for:
-    - creating board
-    - creating rule engine
-    - creating realtime arbiter
-    - creating server score data
-    - creating server moves log
-    - creating game engine
+    Responsible for:
+    - building logic components
+    - connecting dependencies
 
     Does not know:
-    - networking
     - rooms
-    - sessions
-    - database
+    - players
+    - network
     """
 
 
-    # Create a new isolated game engine.
+
+    # Initialize factory.
+    def __init__(
+        self,
+        score_data=None,
+        moves_log=None
+    ):
+        """
+        Store optional game services.
+        """
+
+        self.score_data = score_data
+
+        self.moves_log = moves_log
+
+
+
+    # Create new game engine.
     def create_engine(
         self
     ):
         """
-        Build all game logic objects.
+        Build complete GameEngine.
         """
 
 
-        parser = BoardParser()
+        board = Board()
 
-
-        board = parser.parse_to_board(
-            """
-            bR bN bB bQ bK bB bN bR
-            bP bP bP bP bP bP bP bP
-            .  .  .  .  .  .  .  .
-            .  .  .  .  .  .  .  .
-            .  .  .  .  .  .  .  .
-            .  .  .  .  .  .  .  .
-            wP wP wP wP wP wP wP wP
-            wR wN wB wQ wK wB wN wR
-            """
-        )
 
 
         rule_engine = RuleEngine(
@@ -58,29 +55,33 @@ class GameEngineFactory:
         )
 
 
-        score_data = ScoreData()
 
-
-        moves_log = MovesLog()
-
-
-        arbiter = RealTimeArbiter(
+        real_time_arbiter = RealTimeArbiter(
             board
         )
 
 
-        engine = GameEngine(
+
+        game_engine = GameEngine(
+
             board,
+
             rule_engine,
-            arbiter,
-            score_data,
-            moves_log
+
+            real_time_arbiter,
+
+            self.score_data,
+
+            self.moves_log
+
         )
 
 
-        arbiter.set_game_engine(
-            engine
+
+        real_time_arbiter.set_game_engine(
+            game_engine
         )
 
 
-        return engine
+
+        return game_engine

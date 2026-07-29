@@ -3,7 +3,6 @@ import socket
 import threading
 
 
-
 class TCPClient:
     """
     Client side TCP communication.
@@ -16,14 +15,19 @@ class TCPClient:
     Does not know:
     - game logic
     - UI rendering
-    - rooms
     - authentication logic
     """
 
 
-
     # Initialize TCP client.
-    def __init__(self, host="localhost", port=5000):
+    def __init__(
+        self,
+        host="localhost",
+        port=5000
+    ):
+        """
+        Create socket and initialize state.
+        """
 
         self._socket = socket.socket(
             socket.AF_INET,
@@ -31,6 +35,7 @@ class TCPClient:
         )
 
         self._host = host
+
         self._port = port
 
         self._connected = False
@@ -55,69 +60,64 @@ class TCPClient:
             )
         )
 
-
         self._connected = True
-
 
         self.start_listener()
 
 
 
-    # Start background listener.
+    # Start receiver thread.
     def start_listener(
         self
     ):
         """
-        Start thread that receives
-        messages from server.
+        Listen to server messages
+        in background.
         """
 
-        self._listener_thread = threading.Thread(
+        thread = threading.Thread(
             target=self.receive_messages,
             daemon=True
         )
 
-
-        self._listener_thread.start()
-
+        thread.start()
 
 
-    # Send command to server.
+
+    # Send message to server.
     def send_command(
         self,
         command_type,
         data=None
     ):
         """
-        Send JSON message.
+        Send command as JSON.
         """
 
         if not self._connected:
-
             return
 
 
         if data is None:
-
             data = {}
-
 
 
         message = {
 
-            "type":
-            command_type,
+            "type": command_type,
 
-            "data":
-            data
+            "data": data
+
         }
-
 
 
         encoded = json.dumps(
             message
         )
-
+        print(
+            "CLIENT SEND:",
+            message
+        )
 
         self._socket.send(
             encoded.encode("utf-8")
@@ -125,14 +125,14 @@ class TCPClient:
 
 
 
-    # Login request.
+    # Send login request.
     def login(
         self,
         username,
         password
     ):
         """
-        Send login request.
+        Send login command.
         """
 
         self.send_command(
@@ -145,14 +145,14 @@ class TCPClient:
 
 
 
-    # Register request.
+    # Send register request.
     def register(
         self,
         username,
         password
     ):
         """
-        Send register request.
+        Send register command.
         """
 
         self.send_command(
@@ -165,7 +165,7 @@ class TCPClient:
 
 
 
-    # Search opponent.
+    # Search for opponent.
     def play(
         self
     ):
@@ -184,7 +184,7 @@ class TCPClient:
         self
     ):
         """
-        Create new room.
+        Send create room request.
         """
 
         self.send_command(
@@ -199,7 +199,7 @@ class TCPClient:
         room_id
     ):
         """
-        Join existing room.
+        Send join room request.
         """
 
         self.send_command(
@@ -216,7 +216,7 @@ class TCPClient:
         self
     ):
         """
-        Leave current room.
+        Send leave room request.
         """
 
         self.send_command(
@@ -248,11 +248,10 @@ class TCPClient:
         self
     ):
         """
-        Listen for server responses.
+        Receive messages from server.
         """
 
         while self._connected:
-
 
             try:
 
@@ -269,7 +268,8 @@ class TCPClient:
                 message = json.loads(
                     data.decode("utf-8")
                 )
-                
+
+
                 self.last_message = message
 
 
@@ -291,6 +291,18 @@ class TCPClient:
 
 
         self._connected = False
+
+
+
+    # Get last received message.
+    def get_last_message(
+        self
+    ):
+        """
+        Return latest server message.
+        """
+
+        return self.last_message
 
 
 

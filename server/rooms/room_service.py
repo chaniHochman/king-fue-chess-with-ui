@@ -2,36 +2,30 @@ from server.bus.event import Event
 from server.bus.event_type import EventType
 
 
+
 class RoomService:
     """
-    Handles room related events.
+    Handles room events.
 
     Responsible for:
     - creating rooms
     - joining rooms
-    - notifying room changes
-
-    Uses:
-    - MessageBus
-    - RoomManager
 
     Does not know:
-    - network
-    - database
+    - games
     - authentication
-    - game logic
     """
 
 
-    # Initialize room service.
+
+    # Initialize service.
     def __init__(
         self,
         bus,
         room_manager
     ):
         """
-        Store dependencies
-        and register event listeners.
+        Store dependencies.
         """
 
         self._bus = bus
@@ -42,10 +36,12 @@ class RoomService:
 
 
 
-    # Register room event handlers.
-    def register_events(self):
+    # Register listeners.
+    def register_events(
+        self
+    ):
         """
-        Subscribe to room requests.
+        Subscribe to room events.
         """
 
         self._bus.subscribe(
@@ -58,41 +54,32 @@ class RoomService:
             EventType.JOIN_ROOM_REQUEST,
             self.join_room
         )
-        self._bus.subscribe(
-            EventType.MATCH_FOUND,
-            self.create_match_room
-        )
 
 
 
-    # Handle create room request.
+    # Create room.
     def create_room(
         self,
         event
     ):
         """
-        Create a new room.
-
-        Uses RoomManager only.
+        Create new room.
         """
 
-        connection = event.data["connection"]
+        session = event.data["session"]
 
-        session = event.data.get(
-            "session"
-        )
-        if session is None:
-            return
 
         room = self._room_manager.create_room()
 
 
-        if session is not None:
+        role = room.add_player(
+            session
+        )
 
-            self._room_manager.join_room(
-                room.room_id,
-                session
-            )
+
+        session.join_room(
+            room
+        )
 
 
         self._bus.publish(
@@ -102,10 +89,13 @@ class RoomService:
                 EventType.ROOM_CREATED,
 
                 {
-                    "connection": connection,
+                    "room": room,
 
-                    "room_id":
-                    room.room_id
+                    "room_id": room.room_id,
+
+                    "session": session,
+
+                    "role": role
                 }
 
             )
@@ -114,57 +104,39 @@ class RoomService:
 
 
 
-    # Handle join room request.
+    # Join room.
     def join_room(
         self,
         event
     ):
         """
-        Add player or viewer into room.
+        Join existing room.
         """
 
-        connection = event.data["connection"]
+        session = event.data["session"]
 
         room_id = event.data["room_id"]
 
-        session = event.data.get(
-            "session"
+
+        room = self._room_manager.get_room(
+            room_id
         )
 
 
-        if session is None:
+        if room is None:
 
             return
 
 
 
-        role = self._room_manager.join_room(
-            room_id,
+        role = room.add_player(
             session
         )
 
 
-        if role is None:
-
-            self._bus.publish(
-
-                Event(
-
-                    EventType.ROOM_JOIN_FAILED,
-
-                    {
-                        "connection": connection,
-
-                        "reason":
-                        "room_not_found"
-                    }
-
-                )
-
-            )
-
-            return
-
+        session.join_room(
+            room
+        )
 
 
         self._bus.publish(
@@ -174,80 +146,11 @@ class RoomService:
                 EventType.PLAYER_JOINED_ROOM,
 
                 {
-                    "room_id":
-                    room_id,
+                    "room": room,
 
-                    "username":
-                    session.user.username,
+                    "session": session,
 
-                    "role":
-                    role
-                }
-
-            )
-
-        )
-
-
-        if self._room_manager.is_room_ready(room_id):
-
-            room = self._room_manager.get_room(
-                room_id
-            )
-
-            self._bus.publish(
-
-                Event(
-
-                    EventType.GAME_CREATED,
-
-                    {
-                        "room_id":
-                        room_id
-                    }
-
-                )
-
-            )
-    def create_match_room(
-        self,
-        event
-    ):
-        """
-        Create room automatically
-        after matchmaking.
-        """
-
-
-        player1 = event.data["player1"]
-
-        player2 = event.data["player2"]
-
-
-        room = self._room_manager.create_room()
-
-
-        self._room_manager.join_room(
-            room.room_id,
-            player1
-        )
-
-
-        self._room_manager.join_room(
-            room.room_id,
-            player2
-        )
-
-
-        self._bus.publish(
-
-            Event(
-
-                EventType.GAME_CREATED,
-
-                {
-                    "room_id":
-                    room.room_id
+                    "role": role
                 }
 
             )

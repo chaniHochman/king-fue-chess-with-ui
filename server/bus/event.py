@@ -1,48 +1,62 @@
-from datetime import datetime
+import time
 import uuid
 
 
 class Event:
     """
-    Represents an internal server event.
+    Represents internal server event.
 
-    Events are passed through MessageBus.
+    Events are used only inside the server.
+
+    Responsible for:
+    - storing event type
+    - storing event data
+    - identifying event creation time
+
+    Does not know:
+    - network
+    - database
+    - game logic
     """
 
 
-    # Create new event.
+
+    # Initialize event.
     def __init__(
         self,
         event_type,
         data=None
     ):
         """
-        Store event information.
+        Create new internal event.
         """
 
-        self.id = str(
-            uuid.uuid4()
-        )
+        self.id = str(uuid.uuid4())
 
         self.type = event_type
 
         self.data = data or {}
 
-        self.time = datetime.now()
-
-        self.resolved = False
+        self.timestamp = time.time()
 
 
-    # Return readable event text.
-    def __repr__(self):
+
+    # Return event information.
+    def to_dict(
+        self
+    ):
         """
-        Return debug representation.
+        Convert event into dictionary.
         """
 
-        return (
-            f"Event("
-            f"id={self.id}, "
-            f"type={self.type}, "
-            f"data={self.data}"
-            f")"
-        )
+        return {
+
+            "id": self.id,
+
+            "type": self.type.value,
+
+            "data": self.data,
+
+            "timestamp": self.timestamp
+
+        }

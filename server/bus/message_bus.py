@@ -1,31 +1,119 @@
 from collections import defaultdict
 
 
+
 class MessageBus:
     """
     Central communication system.
 
-    Components publish events.
+    Components communicate only
+    through events.
 
-    Components subscribe to events.
+    Responsible for:
+    - subscribing listeners
+    - publishing events
 
-    Components never know each other directly.
+    Does not know:
+    - users
+    - games
+    - rooms
     """
 
-    # Create empty subscribers dictionary.
-    def __init__(self):
+
+
+    # Initialize message bus.
+    def __init__(
+        self
+    ):
+        """
+        Create empty subscribers storage.
+        """
 
         self._subscribers = defaultdict(list)
 
-    # Register event handler.
-    def subscribe(self, event_type, handler):
 
-        self._subscribers[event_type].append(handler)
 
-    # Publish event to all subscribers.
-    def publish(self, event):
+    # Register event listener.
+    def subscribe(
+        self,
+        event_type,
+        handler
+    ):
+        """
+        Add handler for event type.
+        """
 
-        handlers = self._subscribers.get(event.type, [])
+        if handler not in self._subscribers[event_type]:
+
+            self._subscribers[event_type].append(
+                handler
+            )
+
+
+
+    # Remove event listener.
+    def unsubscribe(
+        self,
+        event_type,
+        handler
+    ):
+        """
+        Remove existing handler.
+        """
+
+        if handler in self._subscribers[event_type]:
+
+            self._subscribers[event_type].remove(
+                handler
+            )
+
+
+
+    # Publish event.
+    def publish(
+        self,
+        event
+    ):
+        """
+        Send event to all listeners.
+        """
+        print(
+            "BUS PUBLISH:",
+            event.type
+        )
+        handlers = self._subscribers.get(
+            event.type,
+            []
+        )
+
 
         for handler in handlers:
-            handler(event)
+
+            try:
+
+                handler(
+                    event
+                )
+
+
+            except Exception as error:
+
+                print(
+                    "Event handler error:",
+                    error
+                )
+
+
+
+    # Return number of listeners.
+    def listener_count(
+        self,
+        event_type
+    ):
+        """
+        Return amount of listeners.
+        """
+
+        return len(
+            self._subscribers[event_type]
+        )
