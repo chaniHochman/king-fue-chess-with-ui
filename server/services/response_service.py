@@ -79,7 +79,7 @@ class ResponseService:
         )
 
         self._bus.subscribe(
-            EventType.GAME_STATE_CHANGED,
+            EventType.GAME_STATE_UPDATED,
             self.game_state_changed
         )
 
@@ -94,12 +94,12 @@ class ResponseService:
         )
 
         self._bus.subscribe(
-            EventType.PLAY_SOUND,
+            EventType.SOUND_EVENT,
             self.play_sound
         )
 
         self._bus.subscribe(
-            EventType.PLAY_ANIMATION,
+            EventType.ANIMATION_EVENT,
             self.play_animation
         )
 

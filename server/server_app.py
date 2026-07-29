@@ -30,6 +30,8 @@ from server.commands.client_command_handler import ClientCommandHandler
 
 from server.services.disconnect_monitor import DisconnectMonitor
 from server.bus.event_type import EventType
+from server.services.response_service import ResponseService
+from server.services.matchmaking_service import MatchmakingService
 
 
 class ServerApp:
@@ -188,10 +190,15 @@ class ServerApp:
         self.command_handler = ClientCommandHandler(
             self.bus
         )
-
+        self.response_service = ResponseService(
+            self.bus
+        )
+        self.matchmaking_service = MatchmakingService(
+                self.bus
+            )
 
         self.bus.subscribe(
-            "CLIENT_MESSAGE",
+            EventType.CLIENT_MESSAGE,
             self.command_handler.handle
         )
 

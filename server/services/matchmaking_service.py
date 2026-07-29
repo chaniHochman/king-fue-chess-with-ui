@@ -2,7 +2,7 @@ import time
 
 from server.bus.event import Event
 from server.bus.event_type import EventType
-from server.config.server_config import ServerConfig
+from server.config import ServerConfig
 
 
 

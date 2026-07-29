@@ -50,7 +50,6 @@ class EventType(Enum):
     ROOM_REMOVED = "room_removed"
 
 
-
     # Matchmaking events
     MATCH_REQUEST = "match_request"
     MATCH_FOUND = "match_found"
@@ -88,3 +87,13 @@ class EventType(Enum):
     GAME_FINISHED="game_finished"
 
     PLAYER_TIMEOUT="player_timeout"
+
+
+    # Response events
+    ROOM_JOIN_FAILED = "room_join_failed"
+
+    GAME_STATE_CHANGED = "game_state_changed"
+
+    PLAY_SOUND = "play_sound"
+
+    PLAY_ANIMATION = "play_animation"
