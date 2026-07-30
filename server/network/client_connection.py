@@ -1,5 +1,6 @@
 import json
 
+from server.messages import Message
 from server.bus.event import Event
 from server.bus.event_type import EventType
 
@@ -18,6 +19,7 @@ class ClientConnection:
     - rooms
     - games
     """
+
 
 
     # Initialize client connection.
@@ -46,61 +48,74 @@ class ClientConnection:
         self
     ):
         """
-        Receive JSON message
-        and publish event.
+        Continuously receive messages
+        from client socket.
         """
 
-        try:
+        while self._connected:
 
-            data = self._connection.recv(
-                4096
-            )
-            print(
-                "SERVER RECEIVED:",
-                data.decode("utf-8")
-            )
+            try:
 
-            if not data:
-
-                self.close()
-
-                return None
+                data = self._connection.recv(
+                    4096
+                )
 
 
-            message = json.loads(
-                data.decode("utf-8")
-            )
-            print(
-                "SERVER RECEIVED FROM SOCKET:",
-                message
-            )
+                if not data:
 
-            self._bus.publish(
+                    self.close()
 
-                Event(
+                    break
 
-                    EventType.CLIENT_MESSAGE,
 
-                    {
-                        "connection": self,
 
-                        "message": message
+                text = data.decode(
+                    "utf-8"
+                )
 
-                    }
+
+                print(
+                    "SERVER RECEIVED:",
+                    text
+                )
+
+
+                message = Message.decode(
+                    text.strip()
+                )
+
+
+                self._bus.publish(
+
+                    Event(
+
+                        EventType.CLIENT_MESSAGE,
+
+                        {
+                            "connection": self,
+
+                            "message": message.to_dict()
+
+                        }
+
+                    )
 
                 )
 
-            )
 
 
-            return message
+            except Exception as error:
+
+                print(
+                    "Receive error:",
+                    error
+                )
+
+                self.close()
+
+                break
 
 
-        except Exception:
-
-            self.close()
-
-            return None
 
 
 
@@ -110,28 +125,65 @@ class ClientConnection:
         message
     ):
         """
-        Send JSON message.
+        Send encoded message.
+
+        Accepts:
+        - Message object
+        - bytes
+        - dictionary
         """
 
         if not self._connected:
+
             return
+
 
 
         try:
 
-            encoded = json.dumps(
-                message
+
+            if isinstance(
+                message,
+                Message
+            ):
+
+                data = message.encode()
+
+
+
+            elif isinstance(
+                message,
+                bytes
+            ):
+
+                data = message
+
+
+
+            else:
+
+                data = (
+                    json.dumps(message)
+                    + "\n"
+                ).encode("utf-8")
+
+
+
+            self._connection.sendall(
+                data
             )
 
 
-            self._connection.send(
-                encoded.encode("utf-8")
+
+        except Exception as error:
+
+            print(
+                "Send error:",
+                error
             )
-
-
-        except Exception:
 
             self.close()
+
 
 
 
@@ -144,6 +196,7 @@ class ClientConnection:
         """
 
         return self._connected
+
 
 
 

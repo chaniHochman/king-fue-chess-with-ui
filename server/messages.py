@@ -46,8 +46,7 @@ class Message:
 
         return {
 
-            "type": self.type,
-
+            "type": self.type.value if hasattr(self.type, "value") else self.type,
             "data": self.data
 
         }

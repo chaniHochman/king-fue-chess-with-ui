@@ -2,28 +2,34 @@ from server.bus.event import Event
 from server.bus.event_type import EventType
 
 
+
 class ClientCommandHandler:
     """
     Converts client messages
     into server events.
 
     Responsible only for:
-    - parsing commands
-    - publishing events
+    - parsing client commands
+    - creating server events
+
+    Does not know:
+    - authentication
+    - rooms
+    - games
     """
 
 
 
-    # Initialize handler.
+    # Initialize command handler.
     def __init__(
         self,
-        bus,
-        session_manager=None
+        bus
     ):
+        """
+        Store message bus reference.
+        """
 
         self._bus = bus
-
-        self._session_manager = session_manager
 
 
 
@@ -33,21 +39,36 @@ class ClientCommandHandler:
         event
     ):
         """
-        Convert network message
-        into internal server event.
+        Convert client message
+        into internal event.
         """
 
-        message = event.data["message"]
+        message = event.data.get(
+            "message"
+        )
 
-        connection = event.data["connection"]
+
+        connection = event.data.get(
+            "connection"
+        )
 
 
-        command = message["type"]
+        if message is None:
+
+            return
+
+
+
+        command = message.get(
+            "type"
+        )
+
 
         data = message.get(
             "data",
             {}
         )
+
 
 
         mapping = {
@@ -72,6 +93,10 @@ class ClientCommandHandler:
             EventType.JOIN_ROOM_REQUEST,
 
 
+            "leave_room":
+            EventType.LEAVE_ROOM_REQUEST,
+
+
             "move":
             EventType.MOVE_REQUESTED
 
@@ -84,14 +109,18 @@ class ClientCommandHandler:
         )
 
 
+
         if event_type is None:
+
             return
 
 
 
-        new_data = data.copy()
+        event_data = data.copy()
 
-        new_data["connection"] = connection
+
+
+        event_data["connection"] = connection
 
 
 
@@ -101,7 +130,7 @@ class ClientCommandHandler:
 
                 event_type,
 
-                new_data
+                event_data
 
             )
 

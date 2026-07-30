@@ -45,7 +45,7 @@ class RoomService:
         """
 
         self._bus.subscribe(
-            EventType.CREATE_ROOM_REQUEST,
+            EventType.ROOM_CREATE_RESOLVED,
             self.create_room
         )
 
@@ -65,6 +65,8 @@ class RoomService:
         """
         Create new room.
         """
+        if not event.resolved:
+            return
 
         session = event.data["session"]
 
@@ -112,6 +114,8 @@ class RoomService:
         """
         Join existing room.
         """
+        if not event.resolved:
+            return
 
         session = event.data["session"]
 

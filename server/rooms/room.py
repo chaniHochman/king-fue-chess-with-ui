@@ -1,4 +1,4 @@
-from server.session.player_role import PlayerRole
+from server.rooms.player import PlayerRole
 
 
 

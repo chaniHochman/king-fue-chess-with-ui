@@ -67,9 +67,56 @@ class GameService:
 
         self._bus.subscribe(
 
+            EventType.MATCH_FOUND,
+
+            self.handle_match_found
+
+        )
+
+
+        self._bus.subscribe(
+
             EventType.MOVE_REQUESTED,
 
             self.handle_move
+
+        )
+
+
+
+    # Handle matched players.
+    def handle_match_found(
+        self,
+        event
+    ):
+        """
+        Create room for matched players.
+        """
+
+        player1 = event.data["player1"]
+
+        player2 = event.data["player2"]
+
+
+        room = self._room_manager.create_room()
+
+
+        room.add_player(player1)
+
+        room.add_player(player2)
+
+
+        self._bus.publish(
+
+            Event(
+
+                EventType.START_GAME,
+
+                {
+                    "room_id": room.room_id
+                }
+
+            )
 
         )
 

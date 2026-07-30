@@ -3,6 +3,7 @@ from server.common.message_type import MessageType
 from server.bus.event_type import EventType
 
 
+
 class ResponseService:
     """
     Sends server responses to clients.
@@ -12,9 +13,9 @@ class ResponseService:
     - sending messages
 
     Does not know:
-    - game logic
-    - database
     - authentication
+    - rooms
+    - games
     """
 
 
@@ -25,7 +26,7 @@ class ResponseService:
         bus
     ):
         """
-        Store bus and register events.
+        Store bus reference.
         """
 
         self._bus = bus
@@ -39,68 +40,67 @@ class ResponseService:
         self
     ):
         """
-        Subscribe to events
-        that require client response.
+        Subscribe to response events.
         """
+
 
         self._bus.subscribe(
             EventType.LOGIN_SUCCESS,
             self.login_success
         )
 
+
         self._bus.subscribe(
             EventType.LOGIN_FAILED,
             self.login_failed
         )
+
+
+        self._bus.subscribe(
+            EventType.REGISTER_SUCCESS,
+            self.register_success
+        )
+
+
+        self._bus.subscribe(
+            EventType.REGISTER_FAILED,
+            self.register_failed
+        )
+
 
         self._bus.subscribe(
             EventType.ROOM_CREATED,
             self.room_created
         )
 
-        self._bus.subscribe(
-            EventType.ROOM_JOIN_FAILED,
-            self.room_join_failed
-        )
 
         self._bus.subscribe(
             EventType.GAME_STARTED,
             self.game_started
         )
 
+
         self._bus.subscribe(
             EventType.MOVE_ACCEPTED,
             self.move_accepted
         )
+
 
         self._bus.subscribe(
             EventType.MOVE_REJECTED,
             self.move_rejected
         )
 
+
         self._bus.subscribe(
-            EventType.GAME_STATE_UPDATED,
+            EventType.GAME_STATE_CHANGED,
             self.game_state_changed
         )
+
 
         self._bus.subscribe(
             EventType.GAME_FINISHED,
             self.game_finished
-        )
-
-        self._bus.subscribe(
-            EventType.SCORE_UPDATED,
-            self.score_updated
-        )
-
-        self._bus.subscribe(
-            EventType.SOUND_EVENT,
-            self.play_sound
-        )
-
-        self._bus.subscribe(
-            EventType.ANIMATION_EVENT,
-            self.play_animation
         )
 
 
@@ -116,11 +116,17 @@ class ResponseService:
 
         connection = event.data["connection"]
 
+
         connection.send(
+
             Message(
+
                 MessageType.LOGIN_SUCCESS,
+
                 {}
-            ).encode()
+
+            )
+
         )
 
 
@@ -136,14 +142,75 @@ class ResponseService:
 
         connection = event.data["connection"]
 
+
         connection.send(
+
             Message(
+
                 MessageType.ERROR,
+
                 {
                     "reason":
                     event.data.get("reason")
                 }
-            ).encode()
+
+            )
+
+        )
+
+
+
+    # Send register success.
+    def register_success(
+        self,
+        event
+    ):
+        """
+        Notify registration success.
+        """
+
+        connection = event.data["connection"]
+
+
+        connection.send(
+
+            Message(
+
+                MessageType.REGISTER_SUCCESS,
+
+                {}
+
+            )
+
+        )
+
+
+
+    # Send register failure.
+    def register_failed(
+        self,
+        event
+    ):
+        """
+        Notify registration failure.
+        """
+
+        connection = event.data["connection"]
+
+
+        connection.send(
+
+            Message(
+
+                MessageType.ERROR,
+
+                {
+                    "reason":
+                    event.data.get("reason")
+                }
+
+            )
+
         )
 
 
@@ -154,109 +221,7 @@ class ResponseService:
         event
     ):
         """
-        Return new room id.
-        """
-
-        connection = event.data["connection"]
-
-        connection.send(
-            Message(
-                MessageType.ROOM_CREATED,
-                {
-                    "room_id":
-                    event.data["room_id"]
-                }
-            ).encode()
-        )
-
-
-
-    # Send room join failure.
-    def room_join_failed(
-        self,
-        event
-    ):
-        """
-        Notify room join failure.
-        """
-
-        connection = event.data["connection"]
-
-        connection.send(
-            Message(
-                MessageType.ERROR,
-                {
-                    "reason":
-                    event.data.get("reason")
-                }
-            ).encode()
-        )
-
-
-
-    # Send game started.
-    def game_started(
-        self,
-        event
-    ):
-        """
-        Notify players that game started.
-        """
-
-        message = Message(
-            MessageType.GAME_STARTED,
-            {
-                "room_id":
-                event.data["room_id"]
-            }
-        )
-
-
-        white = event.data["white"]
-
-        black = event.data["black"]
-
-
-        white.connection.send(
-            message
-        )
-
-
-        black.connection.send(
-            message
-        )
-
-
-
-    # Send accepted move.
-    def move_accepted(
-        self,
-        event
-    ):
-        """
-        Notify clients about valid move.
-        """
-
-        self.broadcast_room(
-            event,
-            Message(
-                MessageType.MOVE,
-                {
-                    "move":
-                    event.data["move"]
-                }
-            )
-        )
-
-
-
-    # Send rejected move.
-    def move_rejected(
-        self,
-        event
-    ):
-        """
-        Notify client about invalid move.
+        Send created room id.
         """
 
         connection = event.data.get(
@@ -270,14 +235,115 @@ class ResponseService:
 
 
         connection.send(
+
             Message(
-                MessageType.ERROR,
+
+                MessageType.ROOM_CREATED,
+
                 {
-                    "reason":
-                    "invalid_move"
+                    "room_id":
+                    event.data["room_id"]
                 }
-            ).encode()
+
+            )
+
         )
+
+
+
+    # Send game started.
+    def game_started(
+        self,
+        event
+    ):
+        """
+        Notify players.
+        """
+
+        message = Message(
+
+            MessageType.GAME_STARTED,
+
+            {
+                "room_id":
+                event.data.get("room_id")
+            }
+
+        )
+
+
+        players = event.data.get(
+            "players",
+            []
+        )
+
+
+        for player in players:
+
+            player.connection.send(
+                message
+            )
+
+
+
+    # Send accepted move.
+    def move_accepted(
+        self,
+        event
+    ):
+        """
+        Broadcast valid move.
+        """
+
+        self.broadcast_room(
+
+            event,
+
+            Message(
+
+                MessageType.MOVE,
+
+                {
+                    "move":
+                    event.data["move"]
+                }
+
+            )
+
+        )
+
+
+
+    # Send rejected move.
+    def move_rejected(
+        self,
+        event
+    ):
+        """
+        Notify invalid move.
+        """
+
+        connection = event.data.get(
+            "connection"
+        )
+
+
+        if connection:
+
+            connection.send(
+
+                Message(
+
+                    MessageType.ERROR,
+
+                    {
+                        "reason":
+                        "invalid_move"
+                    }
+
+                )
+
+            )
 
 
 
@@ -287,18 +353,24 @@ class ResponseService:
         event
     ):
         """
-        Send updated snapshot.
+        Send board snapshot.
         """
 
         self.broadcast_room(
+
             event,
+
             Message(
+
                 MessageType.GAME_STATE,
+
                 {
                     "snapshot":
-                    event.data["snapshot"]
+                    event.data.get("snapshot")
                 }
+
             )
+
         )
 
 
@@ -313,80 +385,20 @@ class ResponseService:
         """
 
         self.broadcast_room(
+
             event,
+
             Message(
+
                 MessageType.GAME_ENDED,
+
                 {
                     "reason":
                     event.data.get("reason")
                 }
+
             )
-        )
 
-
-
-    # Send score update.
-    def score_updated(
-        self,
-        event
-    ):
-        """
-        Send new rating.
-        """
-
-        self.broadcast_room(
-            event,
-            Message(
-                MessageType.SCORE_UPDATE,
-                {
-                    "winner":
-                    event.data.get("winner_rating"),
-
-                    "loser":
-                    event.data.get("loser_rating")
-                }
-            )
-        )
-
-
-
-    # Send sound request.
-    def play_sound(
-        self,
-        event
-    ):
-        """
-        Tell client to play sound.
-        """
-
-        self.broadcast_room(
-            event,
-            Message(
-                MessageType.PLAY_SOUND,
-                {
-                    "sound":
-                    event.data["sound"]
-                }
-            )
-        )
-
-
-
-    # Send animation request.
-    def play_animation(
-        self,
-        event
-    ):
-        """
-        Tell client to play animation.
-        """
-
-        self.broadcast_room(
-            event,
-            Message(
-                MessageType.PLAY_ANIMATION,
-                event.data
-            )
         )
 
 
@@ -398,18 +410,13 @@ class ResponseService:
         message
     ):
         """
-        Send message to all players
-        from event room.
+        Send message to all room players.
         """
 
         players = event.data.get(
-            "players"
+            "players",
+            []
         )
-
-
-        if players is None:
-
-            return
 
 
         for player in players:

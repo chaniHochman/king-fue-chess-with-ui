@@ -46,7 +46,7 @@ class GameEngineFactory:
         """
 
 
-        board = Board()
+        board = Board(8,8)
 
 
 

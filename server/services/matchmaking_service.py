@@ -51,8 +51,7 @@ class MatchmakingService:
 
         self._bus.subscribe(
 
-            EventType.MATCH_REQUEST,
-
+            EventType.MATCH_RESOLVED,
             self.add_player
 
         )

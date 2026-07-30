@@ -27,7 +27,7 @@ def main():
         print("2. Create Room")
         print("3. Join Room")
         print("4. Exit")
-
+        print("5. Register")
 
         choice = input(
             "Choose: "
@@ -91,7 +91,21 @@ def main():
             client.disconnect()
 
             break
+        
+        elif choice == "5":
 
+            username = input("Username: ")
+
+            password = input("Password: ")
+
+            client.register(
+                username,
+                password
+            )
+
+            input(
+                "Waiting for registration response..."
+            )
 
 
         else:

@@ -97,3 +97,7 @@ class EventType(Enum):
     PLAY_SOUND = "play_sound"
 
     PLAY_ANIMATION = "play_animation"
+
+    ROOM_CREATE_RESOLVED = "room_create_resolved"
+
+    MATCH_RESOLVED = "match_resolved"

@@ -79,7 +79,7 @@ class SessionResolver:
         event
     ):
         self.forward_event(
-            EventType.CREATE_ROOM_REQUEST,
+            EventType.ROOM_CREATE_RESOLVED,
             event
         )
 
@@ -115,7 +115,7 @@ class SessionResolver:
         event
     ):
         self.forward_event(
-            EventType.MATCH_REQUEST,
+            EventType.MATCH_RESOLVED,
             event
         )
 

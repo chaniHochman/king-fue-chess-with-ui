@@ -10,13 +10,17 @@ class TCPClient:
     Responsible for:
     - connecting to server
     - sending commands
-    - receiving server messages
+    - receiving messages
 
     Does not know:
     - game logic
-    - UI rendering
-    - authentication logic
+    - UI
     """
+
+
+
+    SEPARATOR = "\n"
+
 
 
     # Initialize TCP client.
@@ -34,13 +38,19 @@ class TCPClient:
             socket.SOCK_STREAM
         )
 
+
         self._host = host
 
         self._port = port
 
+
         self._connected = False
 
+
         self.last_message = None
+
+
+        self._buffer = ""
 
 
 
@@ -49,8 +59,8 @@ class TCPClient:
         self
     ):
         """
-        Open TCP connection
-        and start receiver thread.
+        Open connection
+        and start receiver.
         """
 
         self._socket.connect(
@@ -60,7 +70,9 @@ class TCPClient:
             )
         )
 
+
         self._connected = True
+
 
         self.start_listener()
 
@@ -71,8 +83,7 @@ class TCPClient:
         self
     ):
         """
-        Listen to server messages
-        in background.
+        Start background receiver.
         """
 
         thread = threading.Thread(
@@ -80,92 +91,227 @@ class TCPClient:
             daemon=True
         )
 
+
         thread.start()
 
 
 
-    # Send message to server.
+    # Send command.
     def send_command(
         self,
         command_type,
         data=None
     ):
         """
-        Send command as JSON.
+        Send JSON command
+        with TCP separator.
         """
 
+
         if not self._connected:
+
             return
 
 
+
         if data is None:
+
             data = {}
+
 
 
         message = {
 
-            "type": command_type,
+            "type":
+            command_type,
 
-            "data": data
+
+            "data":
+            data
 
         }
 
 
-        encoded = json.dumps(
-            message
+
+        encoded = (
+
+            json.dumps(message)
+
+            +
+
+            self.SEPARATOR
+
         )
+
+
+
         print(
             "CLIENT SEND:",
             message
         )
 
-        self._socket.send(
+
+
+        self._socket.sendall(
+
             encoded.encode("utf-8")
+
         )
 
 
 
-    # Send login request.
+    # Receive server messages.
+    def receive_messages(
+        self
+    ):
+        """
+        Receive messages continuously.
+
+        Uses buffer because TCP
+        has no message boundaries.
+        """
+
+
+        while self._connected:
+
+
+            try:
+
+                data = self._socket.recv(
+                    4096
+                )
+
+
+
+                if not data:
+
+                    break
+
+
+
+                self._buffer += data.decode(
+                    "utf-8"
+                )
+
+
+
+                while self.SEPARATOR in self._buffer:
+
+
+                    raw, self._buffer = self._buffer.split(
+
+                        self.SEPARATOR,
+
+                        1
+
+                    )
+
+
+
+                    if not raw:
+
+                        continue
+
+
+
+                    message = json.loads(
+                        raw
+                    )
+
+
+                    self.last_message = message
+
+
+
+                    print(
+                        "SERVER:",
+                        message
+                    )
+
+
+
+            except Exception as error:
+
+
+                print(
+                    "Receive error:",
+                    error
+                )
+
+
+                break
+
+
+
+        self._connected = False
+
+
+
+    # Get last message.
+    def get_last_message(
+        self
+    ):
+        """
+        Return latest message.
+        """
+
+        return self.last_message
+
+
+
+    # Send login.
     def login(
         self,
         username,
         password
     ):
         """
-        Send login command.
+        Send login request.
         """
 
         self.send_command(
+
             "login",
+
             {
-                "username": username,
-                "password": password
+                "username":
+                username,
+
+                "password":
+                password
             }
+
         )
 
 
 
-    # Send register request.
+    # Send register.
     def register(
         self,
         username,
         password
     ):
         """
-        Send register command.
+        Send register request.
         """
 
         self.send_command(
+
             "register",
+
             {
-                "username": username,
-                "password": password
+                "username":
+                username,
+
+                "password":
+                password
             }
+
         )
 
 
 
-    # Search for opponent.
+    # Search opponent.
     def play(
         self
     ):
@@ -184,7 +330,7 @@ class TCPClient:
         self
     ):
         """
-        Send create room request.
+        Send room creation request.
         """
 
         self.send_command(
@@ -203,10 +349,14 @@ class TCPClient:
         """
 
         self.send_command(
+
             "join_room",
+
             {
-                "room_id": room_id
+                "room_id":
+                room_id
             }
+
         )
 
 
@@ -216,7 +366,7 @@ class TCPClient:
         self
     ):
         """
-        Send leave room request.
+        Send leave request.
         """
 
         self.send_command(
@@ -231,87 +381,28 @@ class TCPClient:
         move
     ):
         """
-        Send player move.
+        Send game move.
         """
 
         self.send_command(
+
             "move",
+
             {
-                "move": move
+                "move":
+                move
             }
+
         )
 
 
 
-    # Receive server messages.
-    def receive_messages(
-        self
-    ):
-        """
-        Receive messages from server.
-        """
-
-        while self._connected:
-
-            try:
-
-                data = self._socket.recv(
-                    4096
-                )
-
-
-                if not data:
-
-                    break
-
-
-                message = json.loads(
-                    data.decode("utf-8")
-                )
-
-
-                self.last_message = message
-
-
-                print(
-                    "SERVER:",
-                    message
-                )
-
-
-            except Exception as error:
-
-                print(
-                    "Receive error:",
-                    error
-                )
-
-                break
-
-
-
-        self._connected = False
-
-
-
-    # Get last received message.
-    def get_last_message(
-        self
-    ):
-        """
-        Return latest server message.
-        """
-
-        return self.last_message
-
-
-
-    # Close connection.
+    # Disconnect.
     def disconnect(
         self
     ):
         """
-        Close TCP connection.
+        Close connection.
         """
 
         self._connected = False
