@@ -39,15 +39,15 @@ from UI.graphics.hud.score.score_renderer import ScoreRenderer
 
 from UI.graphics.hud.moves.moves_log_renderer import MovesLogRenderer
 from UI.graphics.hud.moves.moves_log_data import MovesLogData
-score_data = ScoreData()
-score_renderer = ScoreRenderer(score_data)
 
-moves_log = MovesLogData()
-moves_renderer = MovesLogRenderer(moves_log)
 
 
 def build_game():
+    score_data = ScoreData()
+    score_renderer = ScoreRenderer(score_data)
 
+    moves_log = MovesLogData()
+    moves_renderer = MovesLogRenderer(moves_log)
     #loade board
 
     parser = BoardParser()

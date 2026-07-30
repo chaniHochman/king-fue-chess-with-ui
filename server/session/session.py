@@ -32,6 +32,8 @@ class Session:
 
         self.user = user
 
+        self.role = None
+
         self.room = None
 
         self.connected = True

@@ -1,5 +1,6 @@
 from UI.network.tcp_client import TCPClient
-
+from main import build_game
+import time
 
 def main():
 
@@ -42,11 +43,27 @@ def main():
 
             client.play()
 
-            input(
-                    "Waiting for server response..."
-                )
+            while True:
 
+                message = client.get_last_message()
 
+                print("DEBUG:", message)
+
+                if message:
+
+                    if message["type"] == "game_started":
+
+                        print("STARTING GAME")
+
+                        display = build_game()
+
+                        print("GAME BUILT")
+
+                        display.run()
+
+                        break
+
+                time.sleep(0.1)
         elif choice == "2":
 
             print(
@@ -91,7 +108,7 @@ def main():
             client.disconnect()
 
             break
-        
+
         elif choice == "5":
 
             username = input("Username: ")

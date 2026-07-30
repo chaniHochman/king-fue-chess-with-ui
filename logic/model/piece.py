@@ -22,7 +22,7 @@ class Piece:
         self.kind = kind
         self.cell = cell
         self.state = state
-        Piece._used_ids.add(id)
+        Piece._used_ids.add(piece_id)
     
     
     @property

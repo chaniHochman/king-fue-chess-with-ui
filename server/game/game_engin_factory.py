@@ -2,7 +2,7 @@ from logic.model.board import Board
 from logic.rules.rule_engine import RuleEngine
 from logic.realtime.real_time_arbiter import RealTimeArbiter
 from logic.engine.game_engine import GameEngine
-
+from logic.input_output.BoardParser import BoardParser
 
 
 class GameEngineFactory:
@@ -44,23 +44,24 @@ class GameEngineFactory:
         """
         Build complete GameEngine.
         """
-
-
-        board = Board(8,8)
-
-
+        board = BoardParser().parse_to_board("""
+            bR bN bB bQ bK bB bN bR
+            bP bP bP bP bP bP bP bP
+            .  .  .  .  .  .  .  .
+            .  .  .  .  .  .  .  .
+            .  .  .  .  .  .  .  .
+            .  .  .  .  .  .  .  .
+            wP wP wP wP wP wP wP wP
+            wR wN wB wQ wK wB wN wR
+            """)
 
         rule_engine = RuleEngine(
             board
         )
 
-
-
         real_time_arbiter = RealTimeArbiter(
             board
         )
-
-
 
         game_engine = GameEngine(
 
@@ -76,12 +77,7 @@ class GameEngineFactory:
 
         )
 
-
-
         real_time_arbiter.set_game_engine(
             game_engine
         )
-
-
-
         return game_engine

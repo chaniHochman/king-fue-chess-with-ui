@@ -101,10 +101,18 @@ class GameService:
         room = self._room_manager.create_room()
 
 
-        room.add_player(player1)
+        player1_role = room.add_player(player1)
 
-        room.add_player(player2)
+        player2_role = room.add_player(player2)
 
+
+        player1.role = player1_role
+
+        player2.role = player2_role
+
+        player1.join_room(room)
+
+        player2.join_room(room)
 
         self._bus.publish(
 
@@ -145,17 +153,34 @@ class GameService:
         game = self._game_manager.create_game(
             game_id
         )
-
+        print(
+            "GAME CREATED:",
+            game_id
+        )
 
 
         room = self._room_manager.get_room(
             room_id
         )
+        print(
+            "ROOM FOUND:",
+            room_id
+        )
+
+        print(
+            "ROOM PLAYERS:",
+            [
+                p.username()
+                for p in room.players
+            ]
+        )
+        if room is None:
+
+            return
 
 
-        if room:
+        room.game_id = game_id
 
-            room.game_id = game_id
 
 
 
@@ -168,7 +193,10 @@ class GameService:
                 {
                     "game_id": game_id,
 
-                    "room_id": room_id
+                    "room_id": room_id,
+
+                    "players": room.players
+
 
                 }
 
