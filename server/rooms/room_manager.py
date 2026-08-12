@@ -89,6 +89,25 @@ class RoomManager:
 
 
 
+    # Find room by game id.
+    def get_room_by_game_id(
+        self,
+        game_id
+    ):
+        """
+        Return room with matching game_id.
+        """
+
+        for room in self._rooms.values():
+
+            if room.game_id == game_id:
+
+                return room
+
+        return None
+
+
+
     # Return all rooms.
     def get_all_rooms(
         self

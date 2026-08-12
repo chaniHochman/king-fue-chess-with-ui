@@ -53,9 +53,14 @@ def main():
 
                     if message["type"] == "game_started":
 
+                        game_id = message["data"]["game_id"]
+
                         print("STARTING GAME")
 
-                        display = build_game()
+                        display = build_game(
+                            tcp_client=client,
+                            game_id=game_id
+                        )
 
                         print("GAME BUILT")
 

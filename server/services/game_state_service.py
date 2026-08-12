@@ -21,7 +21,8 @@ class GameStateService:
     def __init__(
         self,
         bus,
-        game_manager
+        game_manager,
+        room_manager
     ):
         """
         Store dependencies.
@@ -30,6 +31,8 @@ class GameStateService:
         self._bus = bus
 
         self._game_manager = game_manager
+
+        self._room_manager = room_manager
 
         self.register_events()
 
@@ -57,15 +60,25 @@ class GameStateService:
         Create state update event.
         """
 
-        room_id = event.data["room_id"]
+        game_id = event.data["game_id"]
 
 
         game = self._game_manager.get_game(
-            room_id
+            game_id
         )
 
 
         if game is None:
+
+            return
+
+
+        room = self._room_manager.get_room_by_game_id(
+            game_id
+        )
+
+
+        if room is None:
 
             return
 
@@ -77,11 +90,11 @@ class GameStateService:
             Event(
                 EventType.GAME_STATE_CHANGED,
                 {
-                    "room_id":
-                    room_id,
+                    "game_id": game_id,
 
-                    "snapshot":
-                    snapshot
+                    "players": room.players,
+
+                    "snapshot": snapshot
                 }
             )
         )

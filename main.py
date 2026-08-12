@@ -42,7 +42,7 @@ from UI.graphics.hud.moves.moves_log_data import MovesLogData
 
 
 
-def build_game():
+def build_game(tcp_client=None, game_id=None):
     score_data = ScoreData()
     score_renderer = ScoreRenderer(score_data)
 
@@ -114,7 +114,9 @@ def build_game():
     )
 
     command_sender = LocalCommandSender(
-        controller
+        controller,
+        tcp_client=tcp_client,
+        game_id=game_id
     )
 
 
@@ -165,7 +167,9 @@ def build_game():
 
         mouse_extractor,
 
-        command_sender
+        command_sender,
+
+        tcp_client=tcp_client
 
     )
 

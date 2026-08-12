@@ -4,6 +4,7 @@
 import cv2
 from UI.graphics.img import Img
 from UI.graphics.config import FRAME_DELAY_MS
+from logic.model.game_snapshot import GameSnapshot, PieceSnapshot
 class DisplayManager:
 
     def __init__(
@@ -16,7 +17,8 @@ class DisplayManager:
         score_renderer,
         moves_renderer,
         mouse_extractor,
-        command_sender
+        command_sender,
+        tcp_client=None
     ):
 
         self._game_engine = game_engine
@@ -28,6 +30,10 @@ class DisplayManager:
         self._mouse_extractor = mouse_extractor
 
         self._command_sender = command_sender
+
+        self._tcp_client = tcp_client
+
+        self._server_snapshot = None
         
         self._window_name = "KungFu Chess"
         
@@ -37,6 +43,27 @@ class DisplayManager:
             score_renderer,
             moves_renderer
             ]
+
+    def set_snapshot(self, snapshot):
+        pieces = [
+            PieceSnapshot(
+                p["piece_id"],
+                p["kind"],
+                p["color"],
+                p["pixel_x"],
+                p["pixel_y"],
+                p["state"],
+                None
+            )
+            for p in snapshot["pieces"]
+        ]
+        self._server_snapshot = GameSnapshot(
+            snapshot["board_width"],
+            snapshot["board_height"],
+            pieces,
+            None,
+            snapshot["game_over"]
+        )
 
     #update the game
     def update(self):
@@ -63,7 +90,7 @@ class DisplayManager:
             0
         )
 
-        snapshot = self._game_engine.create_snapshot()
+        snapshot = self._server_snapshot if self._server_snapshot is not None else self._game_engine.create_snapshot()
    
         for renderer in self._renderers:
             if renderer is not None:
@@ -107,6 +134,11 @@ class DisplayManager:
         cv2.namedWindow(self._window_name)
         cv2.setMouseCallback(self._window_name, self._mouse_callback)
         while not self._game_engine.is_game_over():
+            if self._tcp_client is not None:
+                msg = self._tcp_client.get_last_message()
+                if msg and msg.get("type") == "game_state":
+                    self.set_snapshot(msg["data"]["snapshot"])
+                    self._tcp_client.last_message = None
             self.update()
             canvas = self.render()
             self.show_frame(canvas)

@@ -1,5 +1,6 @@
 from server.bus.event import Event
 from server.bus.event_type import EventType
+from logic.model.position import Position
 import uuid
 
 
@@ -162,6 +163,11 @@ class GameService:
         room = self._room_manager.get_room(
             room_id
         )
+
+        if room is None:
+
+            return
+
         print(
             "ROOM FOUND:",
             room_id
@@ -174,9 +180,6 @@ class GameService:
                 for p in room.players
             ]
         )
-        if room is None:
-
-            return
 
 
         room.game_id = game_id
@@ -218,10 +221,19 @@ class GameService:
 
         game_id = event.data["game_id"]
 
-        source = event.data["source"]
+        raw_source = event.data["source"]
 
-        target = event.data["target"]
+        raw_target = event.data["target"]
 
+        source = Position(
+            raw_source["row"],
+            raw_source["col"]
+        )
+
+        target = Position(
+            raw_target["row"],
+            raw_target["col"]
+        )
 
 
         self._game_manager.handle_move(

@@ -266,7 +266,10 @@ class ResponseService:
 
             {
                 "room_id":
-                event.data.get("room_id")
+                event.data.get("room_id"),
+
+                "game_id":
+                event.data.get("game_id")
             }
 
         )
@@ -292,25 +295,10 @@ class ResponseService:
         event
     ):
         """
-        Broadcast valid move.
+        No-op: GameStateService broadcasts the new snapshot.
         """
 
-        self.broadcast_room(
-
-            event,
-
-            Message(
-
-                MessageType.MOVE,
-
-                {
-                    "move":
-                    event.data["move"]
-                }
-
-            )
-
-        )
+        pass
 
 
 
@@ -356,6 +344,25 @@ class ResponseService:
         Send board snapshot.
         """
 
+        snapshot = event.data.get("snapshot")
+
+        snapshot_dict = {
+            "board_width": snapshot.board_width,
+            "board_height": snapshot.board_height,
+            "game_over": snapshot.game_over,
+            "pieces": [
+                {
+                    "piece_id": p.piece_id,
+                    "kind": p.kind,
+                    "color": p.color,
+                    "pixel_x": p.pixel_x,
+                    "pixel_y": p.pixel_y,
+                    "state": p.state
+                }
+                for p in snapshot.pieces
+            ]
+        }
+
         self.broadcast_room(
 
             event,
@@ -366,7 +373,7 @@ class ResponseService:
 
                 {
                     "snapshot":
-                    event.data.get("snapshot")
+                    snapshot_dict
                 }
 
             )

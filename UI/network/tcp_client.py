@@ -378,7 +378,9 @@ class TCPClient:
     # Send move.
     def send_move(
         self,
-        move
+        game_id,
+        source,
+        target
     ):
         """
         Send game move.
@@ -389,8 +391,17 @@ class TCPClient:
             "move",
 
             {
-                "move":
-                move
+                "game_id": game_id,
+
+                "source": {
+                    "row": source.row,
+                    "col": source.col
+                },
+
+                "target": {
+                    "row": target.row,
+                    "col": target.col
+                }
             }
 
         )

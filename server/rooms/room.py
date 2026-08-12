@@ -29,6 +29,8 @@ class Room:
 
         self.room_id = room_id
 
+        self.game_id = None
+
         self.players = []
 
         self.viewers = []

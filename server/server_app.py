@@ -32,6 +32,7 @@ from server.services.disconnect_monitor import DisconnectMonitor
 from server.bus.event_type import EventType
 from server.services.response_service import ResponseService
 from server.services.matchmaking_service import MatchmakingService
+from server.services.game_state_service import GameStateService
 
 
 class ServerApp:
@@ -196,6 +197,12 @@ class ServerApp:
         self.matchmaking_service = MatchmakingService(
                 self.bus
             )
+
+        self.game_state_service = GameStateService(
+            self.bus,
+            self.game_manager,
+            self.room_manager
+        )
 
         self.bus.subscribe(
             EventType.CLIENT_MESSAGE,
