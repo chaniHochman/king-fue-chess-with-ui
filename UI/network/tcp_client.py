@@ -252,10 +252,20 @@ class TCPClient:
         self
     ):
         """
-        Return latest message.
+        Return the latest message and consume it.
+
+        This method returns the current `last_message` and immediately clears
+        the stored value so the same message is not processed repeatedly by
+        polling callers. Use this when a single consumer should handle each
+        server message exactly once.
         """
 
-        return self.last_message
+        message = self.last_message
+
+        # Consume the message so subsequent calls don't return the same one.
+        self.last_message = None
+
+        return message
 
 
 

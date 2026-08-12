@@ -133,7 +133,10 @@ class DisplayManager:
     def run(self):
         cv2.namedWindow(self._window_name)
         cv2.setMouseCallback(self._window_name, self._mouse_callback)
-        while not self._game_engine.is_game_over():
+        while not self._game_engine.is_game_over() and not (
+            self._server_snapshot is not None
+            and self._server_snapshot.game_over
+        ):
             if self._tcp_client is not None:
                 msg = self._tcp_client.get_last_message()
                 if msg and msg.get("type") == "game_state":

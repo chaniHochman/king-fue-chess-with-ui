@@ -185,6 +185,8 @@ class GameService:
         room.game_id = game_id
 
 
+        for player in room.players:
+            player.game_id = game_id
 
 
         self._bus.publish(
@@ -217,6 +219,9 @@ class GameService:
         """
         Forward move to game manager.
         """
+
+        if event.data.get("resolved"):
+            return
 
 
         game_id = event.data["game_id"]

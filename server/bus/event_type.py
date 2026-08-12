@@ -88,6 +88,8 @@ class EventType(Enum):
 
     PLAYER_TIMEOUT="player_timeout"
 
+    DISCONNECT_TIMEOUT = "disconnect_timeout"
+
 
     # Response events
     ROOM_JOIN_FAILED = "room_join_failed"

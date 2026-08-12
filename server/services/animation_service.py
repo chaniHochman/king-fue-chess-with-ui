@@ -63,7 +63,7 @@ class AnimationService:
                     "piece_move",
 
                     "move":
-                    event.data["move"]
+                    event.data.get("move")
                 }
             )
         )

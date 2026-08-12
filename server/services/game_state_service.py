@@ -98,3 +98,6 @@ class GameStateService:
                 }
             )
         )
+
+        if snapshot.game_over:
+            self._game_manager.remove_game(game_id)

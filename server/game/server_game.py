@@ -68,6 +68,10 @@ class ServerGame:
 
         if result.success:
 
+            self.game_engine.wait(10000)
+
+            if self.game_engine.is_game_over():
+                self.finish()
 
             self.bus.publish(
 
@@ -149,12 +153,13 @@ class ServerGame:
 
         self.finished = True
 
+        self.game_engine.set_game_over()
 
         self.bus.publish(
 
             Event(
 
-                EventType.GAME_ENDED,
+                EventType.GAME_FINISHED,
 
                 {
                     "game_id": self.game_id

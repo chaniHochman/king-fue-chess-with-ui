@@ -22,7 +22,8 @@ class GameDisconnectService:
     def __init__(
         self,
         bus,
-        game_manager
+        game_manager,
+        room_manager
     ):
         """
         Store dependencies.
@@ -31,6 +32,8 @@ class GameDisconnectService:
         self._bus = bus
 
         self._game_manager = game_manager
+
+        self._room_manager = room_manager
 
 
         self.register_events()
@@ -98,21 +101,29 @@ class GameDisconnectService:
 
         game.finish()
 
+        room = self._room_manager.get_room_by_game_id(game_id)
 
+        if room is not None:
 
-        self._bus.publish(
+            snapshot = game.get_snapshot()
 
-            Event(
+            self._bus.publish(
 
-                EventType.GAME_ENDED,
+                Event(
 
-                {
-                    "game_id": game_id,
+                    EventType.GAME_STATE_CHANGED,
 
-                    "reason": "disconnect"
+                    {
+                        "game_id": game_id,
 
-                }
+                        "players": room.players,
+
+                        "snapshot": snapshot
+
+                    }
+
+                )
 
             )
 
-        )
+        self._game_manager.remove_game(game_id)

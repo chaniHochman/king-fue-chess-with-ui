@@ -208,8 +208,19 @@ class ClientConnection:
         Close socket safely.
         """
 
+        if not self._connected:
+            return
+
         self._connected = False
 
+        self._bus.publish(
+            Event(
+                EventType.CLIENT_DISCONNECTED,
+                {
+                    "connection": self
+                }
+            )
+        )
 
         try:
 

@@ -156,6 +156,16 @@ class ServerApp:
 
 
 
+        # Game disconnect handling.
+        from server.game.game_disconnect_service import GameDisconnectService
+        self.game_disconnect_service = GameDisconnectService(
+            self.bus,
+            self.game_manager,
+            self.room_manager
+        )
+
+
+
         # Background services.
         self.logger_service = LoggerService(
             self.bus

@@ -61,6 +61,8 @@ class GameEngine:
     def notify_king_captured(self):
         self._game_over = True
 
+    def set_game_over(self):
+        self._game_over = True
     def create_snapshot(self):
         pieces = []
         
@@ -98,12 +100,13 @@ class GameEngine:
         source,
         destination
     ):
-        self._moves_log.add_move(
-            piece,
-            source,
-            destination
-        )
+        if self._moves_log is not None:
+            self._moves_log.add_move(
+                piece,
+                source,
+                destination
+            )
 
     def add_capture(self, piece):
-
-        self._score_data.add_capture(piece)
+        if self._score_data is not None:
+            self._score_data.add_capture(piece)
