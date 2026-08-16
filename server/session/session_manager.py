@@ -39,10 +39,15 @@ class SessionManager:
         """
         Store session by connection.
         """
+        
+        print(f"DEBUG SESSION_MANAGER: add_session - storing session id={id(session)} username={session.user.username if session.user else 'None'} connection={session.connection}")
+        print(f"DEBUG SESSION_MANAGER: _sessions dict keys before: {list(self._sessions.keys())}")
 
         self._sessions[
             session.connection
         ] = session
+        
+        print(f"DEBUG SESSION_MANAGER: _sessions dict keys after: {list(self._sessions.keys())}")
 
 
 
@@ -79,10 +84,14 @@ class SessionManager:
         """
         Return session.
         """
-
-        return self._sessions.get(
+        
+        result = self._sessions.get(
             connection
         )
+        
+        print(f"DEBUG SESSION_MANAGER: get_session - connection={connection} returning session id={id(result) if result else 'None'} username={result.user.username if result and result.user else 'None'}")
+        
+        return result
 
 
 

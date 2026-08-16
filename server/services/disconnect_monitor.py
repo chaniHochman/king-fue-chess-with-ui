@@ -131,6 +131,8 @@ class DisconnectMonitor:
 
                     )
 
+                    self._session_manager.remove_session(session.connection)
+
 
 
             time.sleep(1)

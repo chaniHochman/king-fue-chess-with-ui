@@ -45,12 +45,15 @@ class Room:
         """
         Add player or viewer.
         """
+        
+        print(f"DEBUG ROOM: add_player called with session id={id(session)} username={session.username() if hasattr(session, 'username') else 'NO_USERNAME_METHOD'}")
 
         if len(self.players) == 0:
 
             self.players.append(
                 session
             )
+            print(f"DEBUG ROOM: Added as WHITE. players list now: {[p.username() for p in self.players if hasattr(p, 'username')]}")
 
             return PlayerRole.WHITE
 
@@ -61,6 +64,7 @@ class Room:
             self.players.append(
                 session
             )
+            print(f"DEBUG ROOM: Added as BLACK. players list now: {[p.username() for p in self.players if hasattr(p, 'username')]}")
 
             return PlayerRole.BLACK
 

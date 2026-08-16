@@ -64,19 +64,18 @@ class MatchmakingService:
         event
     ):
         """
-        Search opponent.
+        Handle MATCH_RESOLVED event.
         """
 
-        session = event.data["session"]
-
-
-
-        rating = session.user.rating
-
-
+        session = event.data.get("session")
+        rating = session.user.rating if session and session.user else 1200
+        
+        print(f"DEBUG MATCHMAKING: add_player called with session id={id(session)} username={session.username() if session else 'None'} rating={rating}")
+        print(f"DEBUG MATCHMAKING: _queue size before: {len(self._queue)}")
 
         for waiting in self._queue:
 
+            print(f"DEBUG MATCHMAKING: Checking waiting session id={id(waiting['session'])} username={waiting['session'].username()}")
 
             if abs(
                 waiting["rating"] - rating
@@ -88,6 +87,8 @@ class MatchmakingService:
                 )
 
 
+                print(f"DEBUG MATCHMAKING: MATCH FOUND! player1 id={id(waiting['session'])} username={waiting['session'].username()} player2 id={id(session)} username={session.username()}")
+                
                 self._bus.publish(
 
                     Event(

@@ -75,6 +75,7 @@ class SessionService:
             user
         )
 
+        print(f"DEBUG SESSION_SERVICE: Created session id={id(session)} username={user.username} connection={connection}")
 
         self._session_manager.add_session(
             session

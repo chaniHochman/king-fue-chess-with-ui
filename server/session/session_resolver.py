@@ -149,6 +149,8 @@ class SessionResolver:
             connection
         )
 
+        if session is not None:
+            print(f"DEBUG SESSION_RESOLVER: Found session id={id(session)} username={session.username()} for event_type={event_type}")
 
         if session is None:
             return

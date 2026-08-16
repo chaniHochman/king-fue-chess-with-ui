@@ -47,9 +47,9 @@ def main():
 
                 message = client.get_last_message()
 
-                print("DEBUG:", message)
-
                 if message:
+
+                    print("DEBUG:", message)
 
                     if message["type"] == "game_started":
 

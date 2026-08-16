@@ -97,6 +97,8 @@ class GameService:
         player1 = event.data["player1"]
 
         player2 = event.data["player2"]
+        
+        print(f"DEBUG GAME_SERVICE: handle_match_found player1 id={id(player1)} username={player1.username()} player2 id={id(player2)} username={player2.username()}")
 
 
         room = self._room_manager.create_room()
